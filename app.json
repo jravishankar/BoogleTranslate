@@ -23,7 +23,15 @@
       "**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.seniorseminar.boogletranslate",
       "supportsTablet": true
-    }
+    },
+    "android": {
+      "package": "com.seniorseminar.boogletranslate",
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
+    },
+    "description": ""
   }
 }
