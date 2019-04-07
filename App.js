@@ -78,11 +78,11 @@ export default class App extends React.Component {
     recording.stopAndUnloadAsync()
     .then(()=>{
       this.setState({
-        isRecording: false, 
+        isRecording: false,
         recording: (new Audio.Recording()),
-      }); 
+      });
     });
-    
+
   }
 
   async _stopRecording(){
@@ -102,13 +102,13 @@ export default class App extends React.Component {
       .catch(e=>console.log(e));
 
       this.setState({
-        isRecording: false, 
+        isRecording: false,
         recording: (new Audio.Recording()),
       });
     });
-    
+
   }
-  
+
   _sendSound(sound){
     sound.getStatusAsync()
     .then((status) => {
@@ -187,19 +187,19 @@ export default class App extends React.Component {
         <Text> Input Language </Text>
         <Picker selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
           <Picker.Item label = "English" value = "en" />
-          <Picker.Item label = "Spanish" value = "es" />
-          <Picker.Item label = "Japanese" value = "ja" />
-          <Picker.Item label = "Russian" value = "ru" />
-          <Picker.Item label = "German" value = "de" />
+          <Picker.Item label = "Español  (Spanish)" value = "es" />
+          <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+          <Picker.Item label = "Русский  (Russian)" value = "ru" />
+          <Picker.Item label = "Deutsch (German)" value = "de" />
         </Picker>
 
         <Text> Output Language </Text>
         <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
           <Picker.Item label = "English" value = "en" />
-          <Picker.Item label = "Spanish" value = "es" />
-          <Picker.Item label = "Japanese" value = "ja" />
-          <Picker.Item label = "Russian" value = "ru" />
-          <Picker.Item label = "German" value = "de" />
+          <Picker.Item label = "Español  (Spanish)" value = "es" />
+          <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+          <Picker.Item label = "Русский  (Russian)" value = "ru" />
+          <Picker.Item label = "Deutsch (German)" value = "de" />
         </Picker>
 
         {this.state.isRecording && (<Text>Recording...</Text>)}
@@ -229,4 +229,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  put: {
+    alignItems: 'center'
+  }
 });
