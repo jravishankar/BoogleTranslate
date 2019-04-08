@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, View, Text, Picker, StyleSheet } from 'react-native';
+import { Button, View, Text, Picker, StyleSheet, TouchableOpacity } from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
 
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
@@ -137,7 +137,8 @@ export default class App extends React.Component {
       };
 
       const body = new FormData();
-      body.append('name', 'Zale');
+      body.append('inlang', this.state.inlang);
+      body.append('outlang', this.state.outlang);
       body.append('speechInput', soundFile);
 
       console.log(body);
