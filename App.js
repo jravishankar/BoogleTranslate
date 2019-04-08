@@ -24,10 +24,18 @@ export default class App extends React.Component {
   componentDidMount() {
     Permissions.askAsync(Permissions.AUDIO_RECORDING);
     Audio.setIsEnabledAsync(true);
-    //Audio.setAudioModeAsync({
-    //  shouldDuckAndroid: true,
-    //  interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
-    //});
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      allowsRecordingIOS: true,
+      interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+      shouldDuckAndroid: true,
+      interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+      playThroughEarpieceAndroid: true
+    })
+    // Audio.setAudioModeAsync({
+    //
+    //
+    // });
   }
 
   async _record(){
@@ -55,7 +63,7 @@ export default class App extends React.Component {
             linearPCMIsBigEndian: false,
             linearPCMIsFloat: false,
           },
-        });
+        }).catch((err) => {console.log(err)});
         await recording.setOnRecordingStatusUpdate((s)=>console.log(s));
         console.log(recording);
         await recording.startAsync()
@@ -92,6 +100,7 @@ export default class App extends React.Component {
       console.log(recording.getURI());
       recording.createNewLoadedSoundAsync()
       .then(async (info) => {
+        info.sound.setStatusAsync({volume:1.0})
         console.log(info.sound);
         console.log("Sound Status", info.status);
         info.sound.setOnPlaybackStatusUpdate(this._onPlaybackStatusUpdate);
@@ -113,9 +122,10 @@ export default class App extends React.Component {
     sound.getStatusAsync()
     .then((status) => {
       var filename = status.uri.split('/');
+      var directory = filename[filename.length - 2];
       filename = filename[filename.length - 1];
       const soundFile = {
-        uri: FileSystem.cacheDirectory+"Audio/"+filename,
+        uri: FileSystem.cacheDirectory+directory+"/"+filename,
         name: filename,
         type: 'audio/wav',
       };
@@ -183,54 +193,70 @@ export default class App extends React.Component {
     const { inlang, outlang, speech } = this.state;
 
     return (
-      <View>
-        <Text> Input Language </Text>
-        <Picker selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
-          <Picker.Item label = "English" value = "en" />
-          <Picker.Item label = "Español  (Spanish)" value = "es" />
-          <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-          <Picker.Item label = "Русский  (Russian)" value = "ru" />
-          <Picker.Item label = "Deutsch (German)" value = "de" />
-        </Picker>
+        <View style={styles.container}>
+          <View style={styles.inout}>
+            <Text style={styles.input}> Input Language </Text>
+            <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
+              <Picker.Item label = "English" value = "en" />
+              <Picker.Item label = "Español  (Spanish)" value = "es" />
+              <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+              <Picker.Item label = "Русский  (Russian)" value = "ru" />
+              <Picker.Item label = "Deutsch (German)" value = "de" />
+            </Picker>
 
-        <Text> Output Language </Text>
-        <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
-          <Picker.Item label = "English" value = "en" />
-          <Picker.Item label = "Español  (Spanish)" value = "es" />
-          <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-          <Picker.Item label = "Русский  (Russian)" value = "ru" />
-          <Picker.Item label = "Deutsch (German)" value = "de" />
-        </Picker>
+            <Text style={styles.output}> Output Language </Text>
+            <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
+              <Picker.Item label = "English" value = "en" />
+              <Picker.Item label = "Español  (Spanish)" value = "es" />
+              <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+              <Picker.Item label = "Русский  (Russian)" value = "ru" />
+              <Picker.Item label = "Deutsch (German)" value = "de" />
+            </Picker>
+          </View>
 
-        {this.state.isRecording && (<Text>Recording...</Text>)}
-        <Button disabled={this.state.isRecording} title= "Record" onPress= {this._record.bind(this)}>
-        </Button>
 
-        <Button disabled={!this.state.isRecording} title= "Stop Recording" onPress= {this._stopRecording.bind(this)}>
-        </Button>
+          {this.state.isRecording && (<Text>Recording...</Text>)}
+          <Button disabled={this.state.isRecording} title= "Record" onPress= {this._record.bind(this)}>
+          </Button>
 
-        <Button disabled={!this.state.sound || this.state.isPlaying} title= "Play" onPress= {this._playSound.bind(this)}>
-        </Button>
+          <Button disabled={!this.state.isRecording} title= "Stop Recording" onPress= {this._stopRecording.bind(this)}>
+          </Button>
 
-        <Button disabled={!this.state.sound || !this.state.isPlaying} title= "Stop Playing" onPress= {this._stopSound.bind(this)}>
-        </Button>
+          <Button disabled={!this.state.sound || this.state.isPlaying} title= "Play" onPress= {this._playSound.bind(this)}>
+          </Button>
 
-        <Button disabled={!this.state.sound} title= "Send Sound" onPress= {()=>this._sendSound(this.state.sound)}>
-        </Button>
-      </View>
+          <Button disabled={!this.state.sound || !this.state.isPlaying} title= "Stop Playing" onPress= {this._stopSound.bind(this)}>
+          </Button>
+
+          <Button disabled={!this.state.sound} title= "Send Sound" onPress= {()=>this._sendSound(this.state.sound)}>
+          </Button>
+        </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: 'white',
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
-  put: {
-    alignItems: 'center'
+  picker: {
+    marginTop: -20,
+  },
+  input: {
+    fontWeight: 'bold',
+    fontSize: 26,
+    textAlign: 'center',
+    marginTop: 35,
+  },
+  output: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 26,
+  },
+
+  inout: {
+    justifyContent: 'center',
   }
 });
