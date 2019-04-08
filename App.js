@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, View, Text, Picker, StyleSheet, TouchableOpacity } from 'react-native';
+import { Button, View, Text, Picker, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
 
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
@@ -205,29 +205,79 @@ export default class App extends React.Component {
     const { inlang, outlang, speech } = this.state;
 
     return (
-        <View style={styles.container}>
-          <View style={styles.inout}>
-            <Text style={styles.input}> Input Language </Text>
-            <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
-              <Picker.Item label = "English" value = "en" />
-              <Picker.Item label = "Español  (Spanish)" value = "es" />
-              <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-              <Picker.Item label = "Русский  (Russian)" value = "ru" />
-              <Picker.Item label = "Deutsch (German)" value = "de" />
-            </Picker>
+      <View style={styles.container}>
+        <View style={styles.inout}>
+          <Text style={styles.input}> Input Language </Text>
+          <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
+            <Picker.Item label = "English" value = "en" />
+            <Picker.Item label = "Español  (Spanish)" value = "es" />
+            <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+            <Picker.Item label = "Русский  (Russian)" value = "ru" />
+            <Picker.Item label = "Deutsch (German)" value = "de" />
+          </Picker>
 
-            <Text style={styles.output}> Output Language </Text>
-            <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
-              <Picker.Item label = "English" value = "en" />
-              <Picker.Item label = "Español  (Spanish)" value = "es" />
-              <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-              <Picker.Item label = "Русский  (Russian)" value = "ru" />
-              <Picker.Item label = "Deutsch (German)" value = "de" />
-            </Picker>
-          </View>
+          <Text style={styles.output}> Output Language </Text>
+          <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
+            <Picker.Item label = "English" value = "en" />
+            <Picker.Item label = "Español  (Spanish)" value = "es" />
+            <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+            <Picker.Item label = "Русский  (Russian)" value = "ru" />
+            <Picker.Item label = "Deutsch (German)" value = "de" />
+          </Picker>
+        </View>
 
+        <View style={styles.buttonStyle}>
+          {this.state.isRecording && (<Text style={styles.TextStyle}>Recording...(tap again to stop)</Text>)}
+          <TouchableOpacity title={this.state.isRecording === false ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)} style={this.state.isRecording === false ? styles.blueStyle : styles.redStyle}>
+            <Image
+                source={{
+                  uri : 'https://imageog.flaticon.com/icons/png/512/60/60811.png?size=1200x630f&pad=10,10,10,10&ext=png&bg=FFFFFFFF'
+                }}
+                style={styles.iconMic}
+            />
+          </TouchableOpacity>
 
-          {this.state.isRecording && (<Text>Recording...</Text>)}
+          <TouchableOpacity disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
+            <View style={styles.SeparatorLine} />
+            {!this.state.inputSound && (<Image
+                source={{
+                  uri : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqjGqBOzGcY_lKu7UV-cL4FTDKiNnJUcPkc6yM-2u6D1eywhFm'
+                }}
+                style={styles.iconPlay}
+            />)}
+
+            {this.state.inputSound && (<Image
+                source={{
+                  uri : 'https://www.aceworldcompanies.com/wp-content/uploads/2018/08/Play-button.jpg'
+                }}
+                style={styles.iconPlay}
+            />)}
+
+          </TouchableOpacity>
+
+          <TouchableOpacity disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
+            <View style={styles.SeparatorLine} />
+
+            {!this.state.inputSound && (<Image
+                source={{
+                  uri : 'https://static.thenounproject.com/png/373675-200.png'
+                }}
+                style={styles.iconSend}
+            />)}
+
+            {this.state.inputSound && (<Image
+                source={{
+                  uri : 'https://banner2.kisspng.com/20180422/ezq/kisspng-computer-icons-send-5adc7d83081e07.8353343715243994910333.jpg'
+                }}
+                style={styles.iconSend}
+            />)}
+          </TouchableOpacity>
+        </View>
+
+      </View>
+
+          /*
+          {this.state.isRecording && (<Text>Recording... </Text>)}
           <Button title={this.state.isRecording ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)}>
           </Button>
 
@@ -236,7 +286,24 @@ export default class App extends React.Component {
 
           <Button disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
           </Button>
-        </View>
+          */
+
+          //{this.state.isRecording && (<Text>Recording...</Text>)}   title={this.state.isRecording === false ? "Stop Recording" : "Record"}
+          // <TouchableOpacity onPress= {this._record.bind(this)}>
+          //   <Image
+          //     style={styles.button}
+          //     source={{
+          //       uri : 'https://imageog.flaticon.com/icons/png/512/60/60811.png?size=1200x630f&pad=10,10,10,10&ext=png&bg=FFFFFFFF'
+          //     }}
+          //   />
+          // </TouchableOpacity>
+
+          // <TouchableOpacity disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
+          // </TouchableOpacity>
+          //
+          // <TouchableOpacity disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
+          // </TouchableOpacity>
+        //</View>
     );
   }
 }
@@ -245,6 +312,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
     flex: 1,
+    alignItems: 'center',
+
   },
 
   picker: {
@@ -255,14 +324,80 @@ const styles = StyleSheet.create({
     fontSize: 26,
     textAlign: 'center',
     marginTop: 35,
+    fontFamily: 'Times New Roman',
   },
   output: {
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 26,
+    fontFamily: 'Times New Roman',
   },
 
   inout: {
     justifyContent: 'center',
+  },
+  blueStyle: {
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#fff',
+    height: 50,
+    width: 100,
+    borderRadius: 5,
+    margin: 5,
+    backgroundColor: '#485a96',
+    justifyContent: 'center',
+  },
+  redStyle: {
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#fff',
+    height: 60,
+    width: 110,
+    borderRadius: 10,
+    margin: 5,
+    backgroundColor: 'red',
+    justifyContent: 'center',
+  },
+  iconMic: {
+    padding: 5,
+    margin: 0,
+    height: 50,
+    width: 100,
+  },
+  iconPlay: {
+    padding: 5,
+    margin: 0,
+    height: 50,
+    width: 80,
+  },
+  iconSend: {
+    padding: 5,
+    margin: 0,
+    height: 60,
+    width: 75,
+  },
+  textStyle: {
+   marginBottom: 4,
+   marginRight: 20,
+   textAlign: 'center',
+   fontFamily: 'Times New Roman',
+  },
+  buttonStyle: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  SeparatorLine: {
+    backgroundColor: '#fff',
+    width: 1,
+    height: 10,
+  },
+  playback: {
+    marginBottom: 4,
+    marginRight: 20,
+    textAlign: 'center',
+    fontFamily: 'Times New Roman',
+    fontWeight: 'bold',
+    fontSize: 26,
+    color: 'red',
   }
 });
