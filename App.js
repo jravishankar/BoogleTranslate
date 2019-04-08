@@ -14,10 +14,13 @@ export default class App extends React.Component {
       outlang: "es",
       speech: "es-US",
       isRecording: false,
-      isPlaying: false,
-      isBuffering: false,
+      isPlayingInput: false,
+      isPlayingTranslation: false,
+      isBufferingInput: false,
+      isBufferingTranslation: false,
       recording: new Audio.Recording(),
-      sound: null,
+      inputSound: null,
+      translatedSound: null,
     }
   }
 
@@ -79,6 +82,9 @@ export default class App extends React.Component {
           console.log(error);
       }
     }
+    else{
+      this._stopRecording();
+    }
   }
 
   async _cancelRecording(){
@@ -105,7 +111,7 @@ export default class App extends React.Component {
         console.log("Sound Status", info.status);
         info.sound.setOnPlaybackStatusUpdate(this._onPlaybackStatusUpdate);
 
-        this.setState({sound: info.sound});
+        this.setState({inputSound: info.sound});
 
       })
       .catch(e=>console.log(e));
@@ -153,21 +159,26 @@ export default class App extends React.Component {
     })
     .catch(e=>console.log(e));
   }
-  async _playSound(){
+  async _playSound(sound){
+    if(this.state.isPlayingInput){
+      this._stopSound(sound);
+    }
+    else{
       try{
-        await this.state.sound.playAsync()
-        .then(this.setState({isPlaying: true}))
+        await sound.playAsync()
+        .then(this.setState({isPlayingInput: true}))
         .catch(e=>console.log(e));
       }
       catch(err){
         console.log(err)
       }
+    }
   }
 
-  async _stopSound(){
+  async _stopSound(sound){
       try{
-        await this.state.sound.stopAsync()
-        .then(this.setState({isPlaying: false}))
+        await sound.stopAsync()
+        .then(this.setState({isPlayingInput: false}))
         .catch(e=>console.log(e));
       }
       catch(err){
@@ -182,7 +193,7 @@ export default class App extends React.Component {
       }
     } else {
       this.setState({
-        isPlaying: playbackStatus.isPlaying,
+        isPlayingInput: playbackStatus.isPlaying,
         isBuffering: playbackStatus.isBuffering,
       });
     }
@@ -216,19 +227,13 @@ export default class App extends React.Component {
 
 
           {this.state.isRecording && (<Text>Recording...</Text>)}
-          <Button disabled={this.state.isRecording} title= "Record" onPress= {this._record.bind(this)}>
+          <Button title={this.state.isRecording ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)}>
           </Button>
 
-          <Button disabled={!this.state.isRecording} title= "Stop Recording" onPress= {this._stopRecording.bind(this)}>
+          <Button disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
           </Button>
 
-          <Button disabled={!this.state.sound || this.state.isPlaying} title= "Play" onPress= {this._playSound.bind(this)}>
-          </Button>
-
-          <Button disabled={!this.state.sound || !this.state.isPlaying} title= "Stop Playing" onPress= {this._stopSound.bind(this)}>
-          </Button>
-
-          <Button disabled={!this.state.sound} title= "Send Sound" onPress= {()=>this._sendSound(this.state.sound)}>
+          <Button disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
           </Button>
         </View>
     );
