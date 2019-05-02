@@ -1,10 +1,19 @@
 import React from 'react';
 import { Button, View, Text, Picker, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
+const io = require('socket.io-client');
 
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
 
 //let audioPath = AudioUtils.DocumentDirectoryPath + '/test.aac';
+
+const SocketEndpoint = 'http://140.233.167.236:3000';
+
+//console.ignoredYellowBox = ['Remote debugger'];
+import { YellowBox } from 'react-native';
+YellowBox.ignoreWarnings([
+    'Unrecognized WebSocket connection option(s) `agent`, `perMessageDeflate`, `pfx`, `key`, `passphrase`, `cert`, `ca`, `ciphers`, `rejectUnauthorized`. Did you mean to put these under `headers`?'
+]);
 
 export default class App extends React.Component {
   constructor(props){
@@ -21,10 +30,25 @@ export default class App extends React.Component {
       recording: new Audio.Recording(),
       inputSound: null,
       translatedSound: null,
+      isConnected: false,
+      data: null,
     }
   }
 
   componentDidMount() {
+
+    const socket = io(SocketEndpoint, {
+      transports: ['websocket'],
+    });
+    socket.on('connect', () => {
+      this.setState({isConnected: true});
+      console.log('connected');
+    });
+
+    socket.on('ping', data=>{
+      this.setState({data: data});
+    });
+
     Permissions.askAsync(Permissions.AUDIO_RECORDING);
     Audio.setIsEnabledAsync(true);
     Audio.setAudioModeAsync({
@@ -144,8 +168,8 @@ export default class App extends React.Component {
       console.log(body);
       console.log(FileSystem.cacheDirectory);
       console.log(Audio);
-      fetch('https://trans-lang.herokuapp.com/api/v2/translate', {
-      //fetch('http://140.233.183.235:3000/api/v2/translate', {
+      //fetch('https://trans-lang.herokuapp.com/api/v2/translate', {
+      fetch('http://140.233.167.236:3000/api/v2/translate', {
         method: 'POST',
         body: body,
       })
@@ -153,7 +177,9 @@ export default class App extends React.Component {
         console.log(data);
 
         const translation = new Audio.Sound();
-        await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
+        console.log(translation)
+        //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
+        await translation.loadAsync({uri: 'http://140.233.167.236:3000/output.mp3'}, {shouldPlay: true}, true);
       })
       .catch(e=>console.log(e));
 
@@ -274,6 +300,15 @@ export default class App extends React.Component {
           </TouchableOpacity>
         </View>
 
+        <Text>
+          connected: {this.state.isConnected ? 'true' : 'false'}
+        </Text>
+        {this.state.data &&
+          <Text>
+            ping response: {this.state.data.data}
+          </Text>
+        }
+
       </View>
 
           /*
@@ -324,13 +359,13 @@ const styles = StyleSheet.create({
     fontSize: 26,
     textAlign: 'center',
     marginTop: 35,
-    fontFamily: 'Times New Roman',
+    //fontFamily: 'Times New Roman',
   },
   output: {
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 26,
-    fontFamily: 'Times New Roman',
+    //fontFamily: 'Times New Roman',
   },
 
   inout: {
