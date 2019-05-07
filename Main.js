@@ -4,6 +4,7 @@ import { FileSystem, Permissions, Audio } from 'expo';
 import { GiftedChat } from "react-native-gifted-chat";
 import { Composer } from 'react-native-gifted-chat'
 const io = require('socket.io-client');
+import db from "./Database.js";
 
 const SocketEndpoint = 'http://140.233.167.236:3000';
 
@@ -255,6 +256,15 @@ export default class Main extends React.Component {
     //         </Send>);
   }
 
+  async facebookLogout() {
+    try {
+        await db.auth().signOut();
+        this.props.navigation.navigate('Loading');
+    } catch (e) {
+        console.log(e);
+    }
+  }
+
   onSend(messages = []) {
 
   }
@@ -263,17 +273,24 @@ export default class Main extends React.Component {
     const { inlang, outlang, speech } = this.state;
 
     return (
-      <GiftedChat
-         messages={this.state.messages}
-         onSend={messages => this.onSend(messages)}
-         user={{
-           _id: 1
-         }}
-         renderSend={this.renderSend}
+      // <GiftedChat
+      //    messages={this.state.messages}
+      //    onSend={messages => this.onSend(messages)}
+      //    user={{
+      //      _id: 1
+      //    }}
+      //    renderSend={this.renderSend}
+      //
+      //  />
+      //
+      //
+      <View style={styles.view}>
 
-       />
+        <TouchableOpacity style={styles.redStyle} full rounded onPress={() => this.facebookLogout()}>
+          <Text style={styles.login}>Logout</Text>
+        </TouchableOpacity>
 
-
+      </View>
 
 
 
@@ -368,15 +385,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
 
   },
+  view: {
+    flex: 1,
+    backgroundColor: "#fff",
+     justifyContent: "center",
+     alignItems: "center"
+ },
 
-
-    //fontFamily: 'Times New Roman',
-  
   output: {
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 26,
-    //fontFamily: 'Times New Roman',
+
   },
 
   inout: {

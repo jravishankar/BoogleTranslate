@@ -1,97 +1,46 @@
-import React, {Component} from 'react';
-import { StyleSheet, Text, View} from "react-native";
-import { Container, Form, Button} from "native-base";
-import * as firebase from "firebase";
-import { Facebook } from "expo";
-import SelectLang from "./SelectLang.js"
-import Main from "./Main.js"
-//import MainMenu from "./MainMenu.js"
+// import React, {Component} from 'react';
+// import { StyleSheet, Text, View, TouchableOpacity} from "react-native";
+// import { Container, Form, Button} from "native-base";
+// import * as firebase from "firebase";
+// import { Facebook } from "expo";
+// import SelectLang from "./SelectLang.js"
+// import Main from "./Main.js"
+// //import MainMenu from "./MainMenu.js"
+//
+// // Import the screens
+import Main from './Main.js';
+import Loading from './Loading.js';
+import Login from './Login.js';
+import SelectLang from './SelectLang.js';
+// Import React Navigation
+import { createStackNavigator, createAppContainer } from 'react-navigation'
+// Create the navigator
+const navigator = createStackNavigator({
+  Main: { screen: Main,
+          navigationOptions:  {
+             title: 'Chats',
+             headerLeft: null
+          }},
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC1loM_GSHPGQ9hoYyRA_htxsLnmDnwb4g",
-  authDomain: "boogletranslate-fe8ae.firebaseapp.com",
-  databaseURL: "https://boogletranslate-fe8ae.firebaseio.com",
-  projectId: "boogletranslate-fe8ae",
-  storageBucket: "boogletranslate-fe8ae.appspot.com",
-  messagingSenderId: "1072846869412",
-};
+  Loading: { screen: Loading,
+             navigationOptions:  {
+                title: 'Loading BoogleTranslate',
+                headerLeft: null
+             }},
+  Login: { screen: Login,
+            navigationOptions:  {
+               title: 'Login',
+               headerLeft: null
+            }},
+  SelectLang: { screen: SelectLang,
+                navigationOptions:  {
+                   title: 'Language',
+                   headerLeft: null
+                }},
 
-firebase.initializeApp(firebaseConfig);
+ }, {initialRouteName: 'Loading'}
+);
 
-export default class App extends Component {
-  constructor(props){
-    super(props);
-    this.state = {
-      language: "en",
-      auth: false
-    }
-
-    this.storeLanguage = this.storeLanguage.bind(this);
-  }
-
-  async facebookLogin() {
-    const { type, token } = await
-    Facebook.logInWithReadPermissionsAsync(
-      "835368136823240",{
-          permission: "public_profile"
-      }
-    );
-
-    if (type == "success") {
-    const credential =
-      firebase
-        .auth
-        .FacebookAuthProvider
-        .credential(token);
-
-    firebase
-     .auth().signInAndReceiveDataWithCredential(credential).catch(error => {
-         console.log(error);
-      });
-    }
-  }
-
-
-  storeLanguage(userId, lang) {
-    this.setState({language: lang});
-    firebase.database().ref('users/' + userId).set({
-      language: lang
-    });
-  }
-
-
-  componentDidMount() {
-    firebase.auth().onAuthStateChanged(user => {
-      if (user != null) {
-          console.log(user);
-          this.setState({auth: true});
-      }
-    });
-
-
-  }
-
-  render() {
-    const {auth, language} = this.state;
-    return (
-      (<Container>
-        <Form>
-          <Button full rounded onPress={() => {this.facebookLogin()}}>
-            <Text>Login with Facebook</Text>
-          </Button>
-        </Form>
-      </Container>)
-
-
-    );
-  }
-}
-
-
-const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#fff",
-       justifyContent: "center"
-   }
-});
+const App = createAppContainer(navigator);
+// Export it as the root component
+export default App
