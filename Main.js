@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
 
 
     //fontFamily: 'Times New Roman',
-  },
+  
   output: {
     textAlign: 'center',
     fontWeight: 'bold',

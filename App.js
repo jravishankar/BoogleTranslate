@@ -1,8 +1,11 @@
-import React from "react";
+import React, {Component} from 'react';
 import { StyleSheet, Text, View} from "react-native";
 import { Container, Form, Button} from "native-base";
 import * as firebase from "firebase";
 import { Facebook } from "expo";
+import SelectLang from "./SelectLang.js"
+import Main from "./Main.js"
+//import MainMenu from "./MainMenu.js"
 
 const firebaseConfig = {
   apiKey: "AIzaSyC1loM_GSHPGQ9hoYyRA_htxsLnmDnwb4g",
@@ -15,11 +18,12 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-export default class Main extends React.Component {
+export default class App extends Component {
   constructor(props){
     super(props);
     this.state = {
-      language: "en"
+      language: "en",
+      auth: false
     }
 
     this.storeLanguage = this.storeLanguage.bind(this);
@@ -60,6 +64,7 @@ export default class Main extends React.Component {
     firebase.auth().onAuthStateChanged(user => {
       if (user != null) {
           console.log(user);
+          this.setState({auth: true});
       }
     });
 
@@ -67,14 +72,17 @@ export default class Main extends React.Component {
   }
 
   render() {
+    const {auth, language} = this.state;
     return (
-      <Container style={styles.container} >
+      (<Container>
         <Form>
           <Button full rounded onPress={() => {this.facebookLogin()}}>
             <Text>Login with Facebook</Text>
           </Button>
         </Form>
-      </Container>
+      </Container>)
+
+
     );
   }
 }

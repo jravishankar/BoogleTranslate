@@ -1,6 +1,6 @@
-import { Button, View, Text, Picker, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Button, View, Text, Picker, StyleSheet, TouchableOpacity} from 'react-native';
 
-export default class Main extends React.Component {
+export default class SelectLang extends Component {
     constructor(props){
       super(props);
       this.state = {
@@ -13,7 +13,7 @@ export default class Main extends React.Component {
       return(
         <View style={styles.inout}>
           <Text style={styles.input}> Input Language </Text>
-            <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
+            <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.state.select(lang)}}>
               <Picker.Item label = "English" value = "en" />
               <Picker.Item label = "Español  (Spanish)" value = "es" />
               <Picker.Item label = "日本語    (Japanese)" value = "ja" />
