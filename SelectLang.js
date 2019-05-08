@@ -13,14 +13,14 @@ export default class SelectLang extends Component {
       }
     }
 
-
     storeLanguage(lang) {
-      db.database().ref('users/' + this.state.uid).set({
+      db.database().ref('users/' + this.state.uid).update({
         name: this.state.name,
         uid: this.state.uid,
         photoURL: this.state.photoURL,
-        language: this.state.lang
+        language: this.state.lang,
       });
+
       this.props.navigation.navigate("Loading");
     }
 

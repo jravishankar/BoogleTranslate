@@ -275,11 +275,11 @@ export default class Main extends React.Component {
         <Image style={styles.image} source={{uri: photoURL}} />
         <Text style={styles.displayName}>{name}</Text>
         <View style={styles.separatorLine} />
-        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.props.navigation.navigate('ChatMenu', {uid: uid})}>
+        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.props.navigation.navigate('ChatMenu', {uid: uid, lang: lang})}>
           <Text style={styles.login}>Chats</Text>
         </TouchableOpacity>
         <View style={styles.separatorLine} />
-        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.props.navigation.navigate('SelectLang', {lang: lang, uid: uid})}>
+        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.props.navigation.navigate('SelectLang', {lang: lang, uid: uid, name: name, photoURL: photoURL})}>
           <Text style={styles.login}>Change Language</Text>
           <Text style={styles.login}>Currently: {lang}</Text>
         </TouchableOpacity>
