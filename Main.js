@@ -1,18 +1,15 @@
 import React from 'react';
-import { Button, View, Text, Picker, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Button, View, Text, Picker, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
 import { GiftedChat } from "react-native-gifted-chat";
 import { Composer } from 'react-native-gifted-chat'
-const io = require('socket.io-client');
+// const io = require('socket.io-client');
 import db from "./Database.js";
 
-const SocketEndpoint = 'http://140.233.167.236:3000';
+// const SocketEndpoint = 'http://140.233.167.236:3000';
 
 //console.ignoredYellowBox = ['Remote debugger'];
-import { YellowBox } from 'react-native';
-YellowBox.ignoreWarnings([
-    'Unrecognized WebSocket connection option(s) `agent`, `perMessageDeflate`, `pfx`, `key`, `passphrase`, `cert`, `ca`, `ciphers`, `rejectUnauthorized`. Did you mean to put these under `headers`?'
-]);
+
 
 export default class Main extends React.Component {
   constructor(props){
@@ -38,17 +35,17 @@ export default class Main extends React.Component {
 
   componentDidMount() {
 
-    const socket = io(SocketEndpoint, {
-      transports: ['websocket'],
-    });
-    socket.on('connect', () => {
-      this.setState({isConnected: true});
-      console.log('connected');
-    });
-
-    socket.on('ping', data=>{
-      this.setState({data: data});
-    });
+    // const socket = io(SocketEndpoint, {
+    //   transports: ['websocket'],
+    // });
+    // socket.on('connect', () => {
+    //   this.setState({isConnected: true});
+    //   console.log('connected');
+    // });
+    //
+    // socket.on('ping', data=>{
+    //   this.setState({data: data});
+    // });
 
     Permissions.askAsync(Permissions.AUDIO_RECORDING);
     Audio.setIsEnabledAsync(true);
@@ -259,15 +256,12 @@ export default class Main extends React.Component {
   async facebookLogout() {
     try {
         await db.auth().signOut();
-        this.props.navigation.navigate('Loading');
+        this.props.navigation.navigate('Login');
     } catch (e) {
         console.log(e);
     }
   }
 
-  onSend(messages = []) {
-
-  }
 
   render() {
     const { inlang, outlang, speech } = this.state;
@@ -285,11 +279,17 @@ export default class Main extends React.Component {
       //
       //
       <View style={styles.view}>
-
+        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.facebookLogout()}>
+          <Text style={styles.login}>Chats</Text>
+        </TouchableOpacity>
+        <View style={styles.separatorLine} />
+        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.facebookLogout()}>
+          <Text style={styles.login}>Change Language</Text>
+        </TouchableOpacity>
+        <View style={styles.separatorLine} />
         <TouchableOpacity style={styles.redStyle} full rounded onPress={() => this.facebookLogout()}>
           <Text style={styles.login}>Logout</Text>
         </TouchableOpacity>
-
       </View>
 
 
@@ -413,34 +413,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#485a96',
     justifyContent: 'center',
   },
+  greenStyle: {
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#fff',
+    height: 100,
+    width: 150,
+    borderRadius: 5,
+    margin: 5,
+    backgroundColor: '#52c450',
+    justifyContent: 'center',
+  },
   redStyle: {
     alignItems: 'center',
     borderWidth: 0.5,
     borderColor: '#fff',
-    height: 60,
-    width: 110,
+    height: 100,
+    width: 150,
     borderRadius: 10,
     margin: 5,
     backgroundColor: 'red',
     justifyContent: 'center',
-  },
-  iconMic: {
-    padding: 5,
-    margin: 0,
-    height: 50,
-    width: 100,
-  },
-  iconPlay: {
-    padding: 5,
-    margin: 0,
-    height: 50,
-    width: 80,
-  },
-  iconSend: {
-    padding: 5,
-    margin: 0,
-    height: 60,
-    width: 75,
   },
   textStyle: {
    marginBottom: 4,
@@ -452,10 +445,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  SeparatorLine: {
+  separatorLine: {
     backgroundColor: '#fff',
     width: 1,
-    height: 10,
+    height: 40,
   },
   playback: {
     marginBottom: 4,

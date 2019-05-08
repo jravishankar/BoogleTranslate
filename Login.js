@@ -1,9 +1,14 @@
 import React, {Component} from 'react';
 const db = require('firebase');
 import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Button } from 'react-native-elements';
 import { Facebook } from "expo";
 
 export default class Login extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {loading:false};
+  }
 
   async facebookLogin() {
 
@@ -21,7 +26,8 @@ export default class Login extends Component {
           .FacebookAuthProvider
           .credential(token);
 
-      db
+      this.setState({loading:true})
+      await db
        .auth().signInWithCredential(credential)
        .catch(error => console.log(error));
 
@@ -34,9 +40,12 @@ export default class Login extends Component {
   render() {
     return(
       <View style={styles.view}>
-        <TouchableOpacity style={styles.blueStyle} full rounded onPress={() => this.facebookLogin()}>
+        {this.state.loading && <Button loading={true}></Button>}
+        {!this.state.loading && <TouchableOpacity style={styles.blueStyle} full rounded onPress={() => this.facebookLogin()}>
+
           <Text style={styles.login}>Login with Facebook</Text>
-        </TouchableOpacity>
+
+        </TouchableOpacity>}
       </View>
     )
   }

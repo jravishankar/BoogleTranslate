@@ -1,4 +1,4 @@
-// import React, {Component} from 'react';
+import React, {Component} from 'react';
 // import { StyleSheet, Text, View, TouchableOpacity} from "react-native";
 // import { Container, Form, Button} from "native-base";
 // import * as firebase from "firebase";
@@ -12,13 +12,18 @@ import Main from './Main.js';
 import Loading from './Loading.js';
 import Login from './Login.js';
 import SelectLang from './SelectLang.js';
+import {YellowBox } from "react-native";
+
+YellowBox.ignoreWarnings([
+    'Unrecognized WebSocket connection option(s) `agent`, `perMessageDeflate`, `pfx`, `key`, `passphrase`, `cert`, `ca`, `ciphers`, `rejectUnauthorized`. Did you mean to put these under `headers`?'
+]);
 // Import React Navigation
 import { createStackNavigator, createAppContainer } from 'react-navigation'
 // Create the navigator
 const navigator = createStackNavigator({
   Main: { screen: Main,
           navigationOptions:  {
-             title: 'Chats',
+             title: 'MainMenu',
              headerLeft: null
           }},
 
@@ -41,6 +46,11 @@ const navigator = createStackNavigator({
  }, {initialRouteName: 'Loading'}
 );
 
-const App = createAppContainer(navigator);
+const Interface = createAppContainer(navigator);
 // Export it as the root component
+const App = () => {
+  return(
+    <Interface/>
+  )
+};
 export default App

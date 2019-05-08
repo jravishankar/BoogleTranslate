@@ -12,7 +12,7 @@ export default class SelectLang extends Component {
 
 
     storeLanguage(lang) {
-      firebase.database().ref('users/' + this.state.uid).set({
+      db.database().ref('users/' + this.props.navigation.getParam('uid', "NONE")).set({
         language: lang
       });
       this.props.navigation.navigate("Loading");
@@ -21,18 +21,26 @@ export default class SelectLang extends Component {
 
     render() {
       return(
-        <View style={styles.inout}>
-          <Text style={styles.input}> Please Select Your Language </Text>
-            <Picker style={styles.picker} selectedValue={this.state.lang} onValueChange={(value) => this.setState({lang: value})}>
-              <Picker.Item label = "English" value = "en" />
-              <Picker.Item label = "Español  (Spanish)" value = "es" />
-              <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-              <Picker.Item label = "Русский  (Russian)" value = "ru" />
-              <Picker.Item label = "Deutsch (German)" value = "de" />
-            </Picker>
+        <View style={styles.view}>
+          <View style={styles.in}>
+            <Text style={styles.input}> Please Select Your Language </Text>
+          </View>
+          <Picker selectedValue={this.state.lang} onValueChange={(value) => this.setState({lang: value})}>
+            <Picker.Item label = "English" value = "en" />
+            <Picker.Item label = "Español" value = "es" />
+            <Picker.Item label = "French" value = "fr" />
+            <Picker.Item label = "日本語" value = "ja" />
+            <Picker.Item label = "Русский" value = "ru" />
+            <Picker.Item label = "Deutsch" value = "de" />
+            <Picker.Item label = "Chinese (PRC)" value = "zh-CN" />
+            <Picker.Item label = "ไทย" value = "th" />
+
+          </Picker>
+          <View style={styles.in}>
             <TouchableOpacity style={styles.blueStyle} onPress={() => this.storeLanguage(this.state.lang)}>
-              <Text style={styles.done}> Done</Text>
+              <Text style={styles.select}> Done</Text>
             </TouchableOpacity>
+          </View>
         </View>
 
       )
@@ -41,10 +49,16 @@ export default class SelectLang extends Component {
 
 
 const styles = StyleSheet.create({
-  inout: {
-    textAlign: 'center',
-    marginTop: 35,
-    justifyContent: "center",
+  view: {
+    flex: 1,
+    backgroundColor: "#fff",
+     justifyContent: "center",
+  },
+  in: {
+    alignItems: "center"
+  },
+  picker: {
+     marginTop: 250,
   },
   input: {
     fontWeight: 'bold',
@@ -66,5 +80,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#4267b2',
     justifyContent: 'center',
   },
+  select: {
+    color: "white"
+  }
 
 });

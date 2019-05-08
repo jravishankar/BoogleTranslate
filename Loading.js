@@ -6,8 +6,7 @@ import {NavigationEvents} from 'react-navigation';
 
 export default class Loading extends Component {
 
-  verifyUser() {
-
+  async verifyUser() {
       db.auth().onAuthStateChanged(user => {
         console.log(user);
         if (user != null) {
@@ -25,7 +24,7 @@ export default class Loading extends Component {
                     photoURL: userInfo["photoURL"]
                    });
                 } else {
-                  this.props.navigation.navigate('SelectLang');
+                  this.props.navigation.navigate('SelectLang', {uid: userID});
                 }
 
               })
