@@ -28,6 +28,10 @@ export default class Main extends React.Component {
       translatedSound: null,
       isConnected: false,
       data: null,
+      lang: this.props.navigation.getParam('lang', "en"),
+      uid: this.props.navigation.getParam('uid', "None"),
+      photoURL: this.props.navigation.getParam('photoURL', "None"),
+      name: this.props.navigation.getParam('name', "None"),
     }
 
 
@@ -235,22 +239,12 @@ export default class Main extends React.Component {
   }
 
   renderSend = props => {
-    //if (!props.text.trim()) { // text box empty
       return
       <Button title={this.state.isRecording === false ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)} style={this.state.isRecording === false ? styles.blueStyle : styles.redStyle}>
-
         <Text>
-        Woof
+          Woof
         </Text>
       </Button>;
-    //}
-
-    // return (<Send
-    //             {...props}
-    //         >
-    //         <View style={{marginRight: 10, marginBottom: 5}}>
-    //         </View>
-    //         </Send>);
   }
 
   async facebookLogout() {
@@ -264,8 +258,7 @@ export default class Main extends React.Component {
 
 
   render() {
-    const { inlang, outlang, speech } = this.state;
-
+    const { lang, speech, uid, name, photoURL } = this.state;
     return (
       // <GiftedChat
       //    messages={this.state.messages}
@@ -279,12 +272,16 @@ export default class Main extends React.Component {
       //
       //
       <View style={styles.view}>
-        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.facebookLogout()}>
+        <Image style={styles.image} source={{uri: photoURL}} />
+        <Text style={styles.displayName}>{name}</Text>
+        <View style={styles.separatorLine} />
+        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.props.navigation.navigate('ChatMenu', {uid: uid})}>
           <Text style={styles.login}>Chats</Text>
         </TouchableOpacity>
         <View style={styles.separatorLine} />
-        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.facebookLogout()}>
+        <TouchableOpacity style={styles.greenStyle} full rounded onPress={() => this.props.navigation.navigate('SelectLang', {lang: lang, uid: uid})}>
           <Text style={styles.login}>Change Language</Text>
+          <Text style={styles.login}>Currently: {lang}</Text>
         </TouchableOpacity>
         <View style={styles.separatorLine} />
         <TouchableOpacity style={styles.redStyle} full rounded onPress={() => this.facebookLogout()}>
@@ -387,7 +384,7 @@ const styles = StyleSheet.create({
   },
   view: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#abb7cc",
      justifyContent: "center",
      alignItems: "center"
  },
@@ -446,9 +443,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   separatorLine: {
-    backgroundColor: '#fff',
+    backgroundColor: '#abb7cc',
     width: 1,
-    height: 40,
+    height: 20,
+    color: "#abb7cc"
   },
   playback: {
     marginBottom: 4,
@@ -458,5 +456,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 26,
     color: 'red',
+  },
+  image: {
+    width: 100,
+    height: 100,
+    marginTop: 20
+  },
+  displayName: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    marginTop: 20
   }
 });

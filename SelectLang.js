@@ -6,14 +6,20 @@ export default class SelectLang extends Component {
     constructor(props){
       super(props);
       this.state = {
-        lang: "en"
+        lang: this.props.navigation.getParam('lang'),
+        uid: this.props.navigation.getParam('uid', "NONE"),
+        name: this.props.navigation.getParam('name', "NONE"),
+        photoURL: this.props.navigation.getParam('photoURL', "NONE"),
       }
     }
 
 
     storeLanguage(lang) {
-      db.database().ref('users/' + this.props.navigation.getParam('uid', "NONE")).set({
-        language: lang
+      db.database().ref('users/' + this.state.uid).set({
+        name: this.state.name,
+        uid: this.state.uid,
+        photoURL: this.state.photoURL,
+        language: this.state.lang
       });
       this.props.navigation.navigate("Loading");
     }
@@ -51,7 +57,7 @@ export default class SelectLang extends Component {
 const styles = StyleSheet.create({
   view: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#abb7cc",
      justifyContent: "center",
   },
   in: {

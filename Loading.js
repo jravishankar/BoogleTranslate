@@ -10,21 +10,24 @@ export default class Loading extends Component {
       db.auth().onAuthStateChanged(user => {
         console.log(user);
         if (user != null) {
-            const userInfo = user["providerData"][0];
+            const userInfo = user["providerData"][0]
+            const photoURL = userInfo["photoURL"];
             const userID = user["uid"];
+            const name = userInfo["displayName"];
 
             db.database().ref('users/' + userID).once('value')
               .then((snap) => {
-
-                if(snap.exists()) {
+                if(snap.exists()  ) {
                   console.log(snap);
+                  const language = snap.child("language").val();
                   this.props.navigation.navigate('Main', {
-                    name: userInfo["displayName"],
+                    name: name,
                     uid: userID,
-                    photoURL: userInfo["photoURL"]
+                    photoURL: photoURL,
+                    lang: language
                    });
                 } else {
-                  this.props.navigation.navigate('SelectLang', {uid: userID});
+                  this.props.navigation.navigate('SelectLang', {uid: userID, name: name, photoURL: photoURL, lang: "en"});
                 }
 
               })
@@ -50,7 +53,7 @@ export default class Loading extends Component {
 const styles = StyleSheet.create({
   view: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#abb7cc",
      justifyContent: "center",
      alignItems: "center"
  },

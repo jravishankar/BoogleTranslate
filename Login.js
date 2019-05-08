@@ -42,7 +42,6 @@ export default class Login extends Component {
       <View style={styles.view}>
         {this.state.loading && <Button loading={true}></Button>}
         {!this.state.loading && <TouchableOpacity style={styles.blueStyle} full rounded onPress={() => this.facebookLogin()}>
-
           <Text style={styles.login}>Login with Facebook</Text>
 
         </TouchableOpacity>}
@@ -55,9 +54,10 @@ export default class Login extends Component {
 const styles = StyleSheet.create({
   view: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#abb7cc",
      justifyContent: "center",
-     alignItems: "center"
+     alignItems: "center",
+     textAlign: "center"
  },
   blueStyle: {
     alignItems: 'center',
@@ -73,4 +73,10 @@ const styles = StyleSheet.create({
   login: {
     color: "white"
   },
+  title: {
+    fontWeight: "bold",
+    fontSize: 36,
+    width: 400,
+
+  }
 });
