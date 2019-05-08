@@ -12,50 +12,11 @@ import {
 } from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
 const io = require('socket.io-client');
-//const { Duplex } = require('stream');
-//const kSource = Symbol('source');
-
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
 
 //let audioPath = AudioUtils.DocumentDirectoryPath + '/test.aac';
 
 const SocketEndpoint = 'http://140.233.167.236:3000';
-
-//const audioDuplex = new Duplex({
-//  read(size) {
-//    this[kSource].fetchSomeData(size, (data, encoding) => {
-//      this.push(Buffer.from(data, encoding));
-//    });
-//  },
-//  write(chunk, encoding, callback) {
-//    if(Buffer.isBuffer(chunk)){
-//      chunk = chunk.toString();
-//    }
-//    this[kSource].writeSomeData(chunk);
-//    callback();
-//  }
-//});
-
-//class AudioDuplex extends Duplex {
-//  constructor(source, options) {
-//    super(options);
-//    this[kSource] = source;
-//  }
-//
-//  _write(chunk, encoding, callback) {
-//    // The underlying source only deals with strings
-//    if (Buffer.isBuffer(chunk))
-//      chunk = chunk.toString();
-//    this[kSource].writeSomeData(chunk);
-//    callback();
-//  }
-//
-//  _read(size) {
-//    this[kSource].fetchSomeData(size, (data, encoding) => {
-//      this.push(Buffer.from(data, encoding));
-//    });
-//  }
-//}
 
 //console.ignoredYellowBox = ['Remote debugger'];
 import { YellowBox } from 'react-native';
@@ -90,6 +51,22 @@ export default class App extends React.Component {
   }
 
   componentDidMount() {
+
+    Permissions.askAsync(Permissions.AUDIO_RECORDING);
+    Audio.setIsEnabledAsync(true);
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      allowsRecordingIOS: true,
+      interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+      shouldDuckAndroid: true,
+      interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+      playThroughEarpieceAndroid: true
+    })
+    // Audio.setAudioModeAsync({
+    //
+    //
+    // });
+
     this.mounted = true;
     const socket = io(SocketEndpoint, {
       transports: ['websocket'],
@@ -121,21 +98,18 @@ export default class App extends React.Component {
         this.setState({messages: updatedMsgs});
       }
     });
+    
 
-    Permissions.askAsync(Permissions.AUDIO_RECORDING);
-    Audio.setIsEnabledAsync(true);
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      allowsRecordingIOS: true,
-      interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-      shouldDuckAndroid: true,
-      interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-      playThroughEarpieceAndroid: true
-    })
-    // Audio.setAudioModeAsync({
-    //
-    //
-    // });
+    socket.on('voiceMessage', async (base64Data) => {
+      console.log(base64Data);
+
+      const outputPath = FileSystem.documentDirectory+'translation.mp3';
+      FileSystem.writeAsStringAsync(outputPath, base64Data, {encoding: FileSystem.EncodingTypes.Base64});
+      const translation = new Audio.Sound();
+      console.log(translation)
+      //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
+      await translation.loadAsync({uri: outputPath}, {shouldPlay: true}, true);
+    });
   }
 
   async _record(){
@@ -240,31 +214,25 @@ export default class App extends React.Component {
 
       console.log(body);
       console.log(FileSystem.cacheDirectory);
-      console.log(Audio);
 
       FileSystem.readAsStringAsync(soundFile.uri, {encoding: FileSystem.EncodingTypes.Base64}).then((s) => {
-        this.state.socket.binary(true).emit('voiceMessage', Object.assign(soundFile, {data: s}));
+        this.state.socket.binary(true).emit('voiceMessage', Object.assign(soundFile, {data: s, inlang: this.state.inlang, outlang: this.state.outlang}));
       });
 
-      //var stream = ss.createStream();
-
-      //ss(this.state.socket).emit('voiceMessage', stream, soundFile);
-      //fs.createReadStream(soundFile.uri).pipe(stream);
-
       //fetch('https://trans-lang.herokuapp.com/api/v2/translate', {
-      fetch('http://140.233.167.236:3000/api/v2/translate', {
-        method: 'POST',
-        body: body,
-      })
-      .then(async (data)=>{
-        console.log(data);
+      //fetch('http://140.233.167.236:3000/api/v2/translate', {
+      //  method: 'POST',
+      //  body: body,
+      //})
+      //.then(async (data)=>{
+      //  console.log(data);
 
-        const translation = new Audio.Sound();
-        console.log(translation)
-        //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
-        await translation.loadAsync({uri: 'http://140.233.167.236:3000/output.mp3'}, {shouldPlay: true}, true);
-      })
-      .catch(e=>console.log(e));
+      //  const translation = new Audio.Sound();
+      //  console.log(translation)
+      //  //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
+      //  await translation.loadAsync({uri: 'http://140.233.167.236:3000/output.mp3'}, {shouldPlay: true}, true);
+      //})
+      //.catch(e=>console.log(e));
 
     })
     .catch(e=>console.log(e));
