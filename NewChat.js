@@ -11,92 +11,66 @@ export default class NewChat extends React.Component {
       dest: "",
       msg: "",
       transMsg: "",
-      key: ""
+      key: "",
+      users: [],
     }
   }
 
+  async pushMessage(chatroom, message){
+    const messageRef = chatroom.push();
+    messageRef.set(message);
+    const messageKey = messageRef.key;
+
+    //Add chatroom for user
+    db.database().ref('users/' + message.to).child('chatrooms').push(
+      chatroom.key
+    )
+
+    //Add chatroom for destination
+    db.database().ref('users/' + message.from).child('chatrooms').push(
+      chatroom.key
+    )
+  }
   async createChat() {
     db.database().ref('users/' + this.state.dest).once('value')
-      .then((snap) => {
-        if(snap.exists()) {
-          const language = snap.child("language").val();
-          const body = new FormData();
-          body.append('inlang', this.state.lang1);
-          body.append('outlang', language);
-          body.append('text', this.state.msg);
-          fetch('http://trans-lang.herokuapp.com/api/v2/translate-text', {
-            method: 'POST',
-            body: body,
-          })
-          .then((data)=>{
-              const trans = data["_bodyText"];
-              this.setState({transMsg: data["_bodyText"]});
+    .then((snap) => {
+      if(snap.exists()) {
+        const language = snap.child("language").val();
+        const body = new FormData();
+        body.append('inlang', this.state.lang1);
+        body.append('outlang', language);
+        body.append('text', this.state.msg);
+        fetch('http://trans-lang.herokuapp.com/api/v2/translate-text', {
+          method: 'POST',
+          body: body,
+        })
+        .then((data)=>{
+          const trans = data["_bodyText"];
+          this.setState({transMsg: data["_bodyText"]});
 
 
-              //Create chatroom
-              let chats = db.database().ref().child('chats');
-              let baseRoom = chats.push();
-              let baseRoomKey = baseRoom.key;
-              this.setState({key: baseRoomKey});
+          //Create Message
+          const message = {
+            to: this.state.dest,
+            from: this.state.uid,
+            inlang: "en",
+            outlang: "es",
+            inlangContent: this.state.msg,
+            outlangContent: data,
+          };
+            
 
-              baseRoom.set({
-                userMsgs: {
-                  _id: 1,
-                  text: this.state.msg,
-                  user: {
-                    _id: 1
-                  }
-                },
-                destMsgs: {
-                  _id: 1,
-                  text: this.state.transMsg,
-                  user: {
-                    _id: 2
-                  }
-                },
-              });
+          //Create chatroom
+          let chats = db.database().ref().child('chats');
+          let baseRoom = chats.push();
+          this.pushMessage(baseRoom, message);
 
 
-              //Add chatroom for user
-              db.database().ref('users/' + this.state.uid).child('chatrooms').push(
-                {
-                  roomKey: baseRoomKey,
-                  role: "user",
-                  receive: this.state.dest
-                }
-              )
-
-              //Add chatroom for destination
-              db.database().ref('users/' + this.state.dest).child('chatrooms').push(
-                {
-                  roomKey: baseRoomKey,
-                  role: "dest",
-                  receive: this.state.uid
-                }
-              )
-
-
-
-          })
-          .catch(e=>console.log(e));
-
-          console.log("key");
-          console.log(this.state.key);
-          this.props.navigation.navigate("Chat", {role: "user", key: this.state.key, chat: [{
-            _id: 1,
-            text: this.state.msg,
-            user: {
-              _id: 1
-            }
-          }]})
-
-        }  else {
-          console.log("User id invalid")
-        }
-      })
+        })
+        .catch(e=>console.log(e));
+      }
+    })
     .catch((e) => console.log(e));
-
-
   }
 
 

@@ -8,9 +8,8 @@ export default class Chat extends React.Component {
     this.state = {
       uid: this.props.navigation.getParam('uid', "None"),
       loading: true,
-      chat: this.props.navigation.getParam('chat', []),
-      key: this.props.navigation.getParam('key', []),
-      role: this.props.navigation.getParam('role', "")
+      chat: [],
+      chatRoom: this.props.navigation.getParam('chatRoom', undefined),
     }
 
   }
@@ -18,8 +17,15 @@ export default class Chat extends React.Component {
   componentDidMount() {
     console.log("mount");
     console.log(this.state.key);
-    let chat = db.database().ref('chats/' + this.state.key).on('value', function(snap) {
+    let chat = db.database().ref('chats/' + this.state.chatRoom.key).on('value', function(snap) {
+      console.log(snap);
     });
+  }
+
+  async pushMessage(chatroom, message){
+    const messageRef = chatroom.push();
+    messageRef.set(message);
+    const messageKey = messageRef.key;
   }
 
 

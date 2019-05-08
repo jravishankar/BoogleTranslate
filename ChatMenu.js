@@ -10,9 +10,18 @@ export default class ChatMenu extends React.Component {
       uid: this.props.navigation.getParam('uid', "None"),
       loading: false,
       chats: [],
-      lang: this.props.navigation.getParam('lang', "en")
+      lang: this.props.navigation.getParam('lang', "en"),
+      users: [],
     }
 
+  }
+
+  componentWillMount(){
+    db.database().ref('users').once('value')
+    .then((snap)=>{
+      console.log(Object.keys(snap.val()));
+      this.setState({users: Object.keys(snap.val())});
+    });
   }
 
   componentDidMount() {
@@ -26,12 +35,44 @@ export default class ChatMenu extends React.Component {
 
 
   }
+  async createChat(dest) {
+    let chats = db.database().ref().child('chats');
+    let chatRoom = chats.push();
+    console.log(chatRoom.key);
+
+
+    db.database().ref('users/' + dest).child('chats')
+      .push(chatRoom.key);
+
+    db.database().ref('users/' + this.state.uid).child('chats')
+      .push(chatRoom.key);
+
+    return chatRoom;
+  }
+
 
   render() {
-    const { loading, uid } = this.state;
+    const { users, loading, uid } = this.state;
     return(
       <View style={styles.view}>
-        {!loading && <TouchableOpacity style={styles.blueStyle} onPress={() => this.props.navigation.navigate('NewChat', {uid:uid})}></TouchableOpacity>}
+        {!loading && 
+          users.filter(userId=>userId!=uid).map((userId) => (
+            <Button 
+              title={userId}
+              onPress={() => {
+                const chatRoom = this.createChat.bind(this)(userId)
+
+                this.props.navigation.navigate('Chat', {
+                  uid: uid, 
+                  lang: lang, 
+                  chatRoom: chatRoom,
+                });
+              }}
+            >
+            </Button>
+          ))
+        }
+
         {loading && <Button loading={true}></Button>}
       </View>
     )

@@ -32,12 +32,15 @@ export default class Main extends React.Component {
       uid: this.props.navigation.getParam('uid', "None"),
       photoURL: this.props.navigation.getParam('photoURL', "None"),
       name: this.props.navigation.getParam('name', "None"),
+      users: [],
     }
 
 
   }
 
+
   componentDidMount() {
+    console.log(this.state.uid);
 
     // const socket = io(SocketEndpoint, {
     //   transports: ['websocket'],
