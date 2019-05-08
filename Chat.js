@@ -33,10 +33,16 @@ YellowBox.ignoreWarnings([
     'Unrecognized WebSocket connection option(s) `agent`, `perMessageDeflate`, `pfx`, `key`, `passphrase`, `cert`, `ca`, `ciphers`, `rejectUnauthorized`. Did you mean to put these under `headers`?'
 ]);
 
-export default class App extends React.Component {
-  constructor(props){
+import db from "./Database.js";
+
+export default class Chat extends React.Component {
+  constructor(props) {
     super(props);
     this.state = {
+      uid: this.props.navigation.getParam('uid', "None"),
+      loading: true,
+      chat: [],
+      chatRoom: this.props.navigation.getParam('chatRoom', undefined),
       inlang: "en",
       outlang: "es",
       speech: "es-US",
@@ -53,6 +59,7 @@ export default class App extends React.Component {
       socket: null,
       messages: [],
     }
+
   }
 
   componentWillUnmount(){
@@ -65,6 +72,7 @@ export default class App extends React.Component {
     }));
     this.state.socket.emit('textMessage', {inlang: this.state.inlang, outlang: this.state.outlang, text: messages[0]});
   }
+
 
   componentDidMount() {
 
@@ -116,7 +124,14 @@ export default class App extends React.Component {
       //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
       await translation.loadAsync({uri: outputPath}, {shouldPlay: true}, true);
     });
+
+    console.log("mount");
+    console.log(this.state.key);
+    let chat = db.database().ref('chats/' + this.state.chatRoom.key).on('value', function(snap) {
+      console.log(snap);
+    });
   }
+
 
   async _record(){
     if(!this.state.isRecording){
@@ -236,21 +251,6 @@ export default class App extends React.Component {
         this.state.socket.binary(true).emit('voiceMessage', Object.assign(soundFile, {data: s, inlang: this.state.inlang, outlang: this.state.outlang}));
       });
 
-      //fetch('https://trans-lang.herokuapp.com/api/v2/translate', {
-      //fetch('http://140.233.167.236:3000/api/v2/translate', {
-      //  method: 'POST',
-      //  body: body,
-      //})
-      //.then(async (data)=>{
-      //  console.log(data);
-
-      //  const translation = new Audio.Sound();
-      //  console.log(translation)
-      //  //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
-      //  await translation.loadAsync({uri: 'http://140.233.167.236:3000/output.mp3'}, {shouldPlay: true}, true);
-      //})
-      //.catch(e=>console.log(e));
-
     })
     .catch(e=>console.log(e));
   }
@@ -294,7 +294,7 @@ export default class App extends React.Component {
       });
     }
   };
-
+   
   renderAudio = props => {
     return !props.currentMessage.audio ? (
       <View />
@@ -328,6 +328,13 @@ export default class App extends React.Component {
     );
   };
 
+
+  async pushMessage(chatroom, message){
+    const messageRef = chatroom.push();
+    messageRef.set(message);
+    const messageKey = messageRef.key;
+  }
+
   render() {
     const { inlang, outlang, speech } = this.state;
 
@@ -349,96 +356,6 @@ export default class App extends React.Component {
           );
         }}
       />
-
-      //<View style={styles.container}>
-      //  <View style={styles.inout}>
-      //    <Text style={styles.input}> Input Language </Text>
-      //    <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
-      //      <Picker.Item label = "English" value = "en" />
-      //      <Picker.Item label = "Español  (Spanish)" value = "es" />
-      //      <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-      //      <Picker.Item label = "Русский  (Russian)" value = "ru" />
-      //      <Picker.Item label = "Deutsch (German)" value = "de" />
-      //    </Picker>
-
-      //    <Text style={styles.output}> Output Language </Text>
-      //    <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
-      //      <Picker.Item label = "English" value = "en" />
-      //      <Picker.Item label = "Español  (Spanish)" value = "es" />
-      //      <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-      //      <Picker.Item label = "Русский  (Russian)" value = "ru" />
-      //      <Picker.Item label = "Deutsch (German)" value = "de" />
-      //    </Picker>
-      //  </View>
-
-      //  <View style={styles.buttonStyle}>
-      //    {this.state.isRecording && (<Text style={styles.TextStyle}>Recording...(tap again to stop)</Text>)}
-      //    <TouchableOpacity title={this.state.isRecording === false ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)} style={this.state.isRecording === false ? styles.blueStyle : styles.redStyle}>
-      //      <Image
-      //          source={{
-      //            uri : 'https://imageog.flaticon.com/icons/png/512/60/60811.png?size=1200x630f&pad=10,10,10,10&ext=png&bg=FFFFFFFF'
-      //          }}
-      //          style={styles.iconMic}
-      //      />
-      //    </TouchableOpacity>
-
-      //    <TouchableOpacity disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
-      //      <View style={styles.SeparatorLine} />
-      //      {!this.state.inputSound && (<Image
-      //          source={{
-      //            uri : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqjGqBOzGcY_lKu7UV-cL4FTDKiNnJUcPkc6yM-2u6D1eywhFm'
-      //          }}
-      //          style={styles.iconPlay}
-      //      />)}
-
-      //      {this.state.inputSound && (<Image
-      //          source={{
-      //            uri : 'https://www.aceworldcompanies.com/wp-content/uploads/2018/08/Play-button.jpg'
-      //          }}
-      //          style={styles.iconPlay}
-      //      />)}
-
-      //    </TouchableOpacity>
-
-      //    <TouchableOpacity disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
-      //      <View style={styles.SeparatorLine} />
-
-      //      {!this.state.inputSound && (<Image
-      //          source={{
-      //            uri : 'https://static.thenounproject.com/png/373675-200.png'
-      //          }}
-      //          style={styles.iconSend}
-      //      />)}
-
-      //      {this.state.inputSound && (<Image
-      //          source={{
-      //            uri : 'https://banner2.kisspng.com/20180422/ezq/kisspng-computer-icons-send-5adc7d83081e07.8353343715243994910333.jpg'
-      //          }}
-      //          style={styles.iconSend}
-      //      />)}
-      //    </TouchableOpacity>
-      //  </View>
-
-      //  <Text>
-      //    connected: {this.state.isConnected ? 'true' : 'false'}
-      //  </Text>
-      //  {this.state.data &&
-      //    <Text>
-      //      ping response: {this.state.data.data}
-      //    </Text>
-      //  }
-
-      //  {this.state.messages > 0 &&
-      //    <Text>{this.state.messages[0]}</Text>
-      //  }
-
-      //  {this.state.messages.map((msg)=>(<Text key={msg}>{msg}</Text>))}
-      //  <Button title="Send" onPress={()=>{
-      //    this.state.socket.emit('message', "Hello World");
-      //  }}>
-      //  </Button>
-
-      //</View>
     );
   }
 }
