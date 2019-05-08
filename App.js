@@ -11,6 +11,15 @@ import {
   ListItem,
 } from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
+import { GiftedChat, Bubble } from 'react-native-gifted-chat';
+import { FontAwesome } from '@expo/vector-icons';
+
+
+const RecordIcon = (props) => {
+  const iconName = props.recording ? "microphone-slash" : "microphone";
+
+  return <FontAwesome name={iconName} size={40} color={props.color} onPress={props.onPress}/>;
+};
 const io = require('socket.io-client');
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
 
@@ -50,6 +59,13 @@ export default class App extends React.Component {
     this.mounted = false;
   }
 
+  onSend(messages = []) {
+    this.setState(previousState => ({
+      messages: GiftedChat.append(previousState.messages, messages)
+    }));
+    this.state.socket.emit('textMessage', {inlang: this.state.inlang, outlang: this.state.outlang, text: messages[0]});
+  }
+
   componentDidMount() {
 
     Permissions.askAsync(Permissions.AUDIO_RECORDING);
@@ -60,7 +76,7 @@ export default class App extends React.Component {
       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
       shouldDuckAndroid: true,
       interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-      playThroughEarpieceAndroid: true
+      playThroughEarpieceAndroid: false,
     })
     // Audio.setAudioModeAsync({
     //
@@ -81,21 +97,11 @@ export default class App extends React.Component {
       }
     });
 
-    socket.on('ping', data=>{
+    socket.on('textMessage', (msg) => {
       if(this.mounted === true){
-        this.setState({data: data});
-      }
-    });
-
-    socket.on('message', (msg) => {
-      var updatedMsgs = this.state.messages.slice();
-      console.log(this.state.messages.slice());
-      console.log(updatedMsgs);
-      console.log(msg);
-      updatedMsgs.push(msg);
-      console.log(updatedMsgs);
-      if(this.mounted === true){
-        this.setState({messages: updatedMsgs});
+        this.setState(previousState => ({
+          messages: GiftedChat.append(previousState.messages,{_id: previousState.messages.length, text: msg, user: {_id: 2, name: "React", avatar: "https://placeimg.com/140/140/any"}})
+        }));
       }
     });
     
@@ -183,6 +189,17 @@ export default class App extends React.Component {
         info.sound.setOnPlaybackStatusUpdate(this._onPlaybackStatusUpdate);
 
         this.setState({inputSound: info.sound});
+
+        
+        this.setState(previousState => ({
+          messages: GiftedChat.append(previousState.messages, {
+            _id: previousState.messages.length, 
+            audio: true, 
+            user: {
+              _id: 1, 
+            }
+          })
+        }));
 
       })
       .catch(e=>console.log(e));
@@ -278,128 +295,150 @@ export default class App extends React.Component {
     }
   };
 
+  renderAudio = props => {
+    return !props.currentMessage.audio ? (
+      <View />
+    ) : (
+      <FontAwesome
+        name="play"
+        size={35}
+        color={this.state.playAudio ? "red" : "blue"}
+        style={{
+          left: 90,
+          position: "relative",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          backgroundColor: "transparent"
+        }}
+        onPress={() => {
+          this._playSound.bind(this)(this.state.inputSound)
+        }}
+
+      />
+    );
+  };
+
+  renderBubble = props => {
+    return (
+      <View>
+        {this.renderAudio(props)}
+        <Bubble {...props} />
+      </View>
+    );
+  };
 
   render() {
     const { inlang, outlang, speech } = this.state;
 
-    //console.log(this.state.messages);
+    console.log(this.state.messages);
     return (
-      <View style={styles.container}>
-        <View style={styles.inout}>
-          <Text style={styles.input}> Input Language </Text>
-          <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
-            <Picker.Item label = "English" value = "en" />
-            <Picker.Item label = "Español  (Spanish)" value = "es" />
-            <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-            <Picker.Item label = "Русский  (Russian)" value = "ru" />
-            <Picker.Item label = "Deutsch (German)" value = "de" />
-          </Picker>
 
-          <Text style={styles.output}> Output Language </Text>
-          <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
-            <Picker.Item label = "English" value = "en" />
-            <Picker.Item label = "Español  (Spanish)" value = "es" />
-            <Picker.Item label = "日本語    (Japanese)" value = "ja" />
-            <Picker.Item label = "Русский  (Russian)" value = "ru" />
-            <Picker.Item label = "Deutsch (German)" value = "de" />
-          </Picker>
-        </View>
-
-        <View style={styles.buttonStyle}>
-          {this.state.isRecording && (<Text style={styles.TextStyle}>Recording...(tap again to stop)</Text>)}
-          <TouchableOpacity title={this.state.isRecording === false ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)} style={this.state.isRecording === false ? styles.blueStyle : styles.redStyle}>
-            <Image
-                source={{
-                  uri : 'https://imageog.flaticon.com/icons/png/512/60/60811.png?size=1200x630f&pad=10,10,10,10&ext=png&bg=FFFFFFFF'
-                }}
-                style={styles.iconMic}
+      <GiftedChat
+        messages={this.state.messages}
+        onSend={messages => this.onSend(messages)}
+        renderBubble={this.renderBubble}
+        user={{
+          _id: 1
+        }}
+        renderActions={()=>{
+          return(
+            <RecordIcon color="red" recording={this.state.isRecording} 
+              onPress={this._record.bind(this)}
             />
-          </TouchableOpacity>
+          );
+        }}
+      />
 
-          <TouchableOpacity disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
-            <View style={styles.SeparatorLine} />
-            {!this.state.inputSound && (<Image
-                source={{
-                  uri : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqjGqBOzGcY_lKu7UV-cL4FTDKiNnJUcPkc6yM-2u6D1eywhFm'
-                }}
-                style={styles.iconPlay}
-            />)}
+      //<View style={styles.container}>
+      //  <View style={styles.inout}>
+      //    <Text style={styles.input}> Input Language </Text>
+      //    <Picker style={styles.picker} selectedValue={inlang} onValueChange={(lang) => {this.setState({inlang:lang})}}>
+      //      <Picker.Item label = "English" value = "en" />
+      //      <Picker.Item label = "Español  (Spanish)" value = "es" />
+      //      <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+      //      <Picker.Item label = "Русский  (Russian)" value = "ru" />
+      //      <Picker.Item label = "Deutsch (German)" value = "de" />
+      //    </Picker>
 
-            {this.state.inputSound && (<Image
-                source={{
-                  uri : 'https://www.aceworldcompanies.com/wp-content/uploads/2018/08/Play-button.jpg'
-                }}
-                style={styles.iconPlay}
-            />)}
+      //    <Text style={styles.output}> Output Language </Text>
+      //    <Picker selectedValue={outlang} onValueChange={(lang) => {this.setState({outlang:lang})}}>
+      //      <Picker.Item label = "English" value = "en" />
+      //      <Picker.Item label = "Español  (Spanish)" value = "es" />
+      //      <Picker.Item label = "日本語    (Japanese)" value = "ja" />
+      //      <Picker.Item label = "Русский  (Russian)" value = "ru" />
+      //      <Picker.Item label = "Deutsch (German)" value = "de" />
+      //    </Picker>
+      //  </View>
 
-          </TouchableOpacity>
+      //  <View style={styles.buttonStyle}>
+      //    {this.state.isRecording && (<Text style={styles.TextStyle}>Recording...(tap again to stop)</Text>)}
+      //    <TouchableOpacity title={this.state.isRecording === false ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)} style={this.state.isRecording === false ? styles.blueStyle : styles.redStyle}>
+      //      <Image
+      //          source={{
+      //            uri : 'https://imageog.flaticon.com/icons/png/512/60/60811.png?size=1200x630f&pad=10,10,10,10&ext=png&bg=FFFFFFFF'
+      //          }}
+      //          style={styles.iconMic}
+      //      />
+      //    </TouchableOpacity>
 
-          <TouchableOpacity disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
-            <View style={styles.SeparatorLine} />
+      //    <TouchableOpacity disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
+      //      <View style={styles.SeparatorLine} />
+      //      {!this.state.inputSound && (<Image
+      //          source={{
+      //            uri : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqjGqBOzGcY_lKu7UV-cL4FTDKiNnJUcPkc6yM-2u6D1eywhFm'
+      //          }}
+      //          style={styles.iconPlay}
+      //      />)}
 
-            {!this.state.inputSound && (<Image
-                source={{
-                  uri : 'https://static.thenounproject.com/png/373675-200.png'
-                }}
-                style={styles.iconSend}
-            />)}
+      //      {this.state.inputSound && (<Image
+      //          source={{
+      //            uri : 'https://www.aceworldcompanies.com/wp-content/uploads/2018/08/Play-button.jpg'
+      //          }}
+      //          style={styles.iconPlay}
+      //      />)}
 
-            {this.state.inputSound && (<Image
-                source={{
-                  uri : 'https://banner2.kisspng.com/20180422/ezq/kisspng-computer-icons-send-5adc7d83081e07.8353343715243994910333.jpg'
-                }}
-                style={styles.iconSend}
-            />)}
-          </TouchableOpacity>
-        </View>
+      //    </TouchableOpacity>
 
-        <Text>
-          connected: {this.state.isConnected ? 'true' : 'false'}
-        </Text>
-        {this.state.data &&
-          <Text>
-            ping response: {this.state.data.data}
-          </Text>
-        }
+      //    <TouchableOpacity disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
+      //      <View style={styles.SeparatorLine} />
 
-        {this.state.messages > 0 &&
-          <Text>{this.state.messages[0]}</Text>
-        }
+      //      {!this.state.inputSound && (<Image
+      //          source={{
+      //            uri : 'https://static.thenounproject.com/png/373675-200.png'
+      //          }}
+      //          style={styles.iconSend}
+      //      />)}
 
-        {this.state.messages.map((msg)=>(<Text key={msg}>{msg}</Text>))}
-        <Button title="Send" onPress={()=>{
-          this.state.socket.emit('message', "Hello World");
-        }}>
-        </Button>
+      //      {this.state.inputSound && (<Image
+      //          source={{
+      //            uri : 'https://banner2.kisspng.com/20180422/ezq/kisspng-computer-icons-send-5adc7d83081e07.8353343715243994910333.jpg'
+      //          }}
+      //          style={styles.iconSend}
+      //      />)}
+      //    </TouchableOpacity>
+      //  </View>
 
-      </View>
+      //  <Text>
+      //    connected: {this.state.isConnected ? 'true' : 'false'}
+      //  </Text>
+      //  {this.state.data &&
+      //    <Text>
+      //      ping response: {this.state.data.data}
+      //    </Text>
+      //  }
 
-          /*
-          {this.state.isRecording && (<Text>Recording... </Text>)}
+      //  {this.state.messages > 0 &&
+      //    <Text>{this.state.messages[0]}</Text>
+      //  }
 
-          <Button disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
-          </Button>
+      //  {this.state.messages.map((msg)=>(<Text key={msg}>{msg}</Text>))}
+      //  <Button title="Send" onPress={()=>{
+      //    this.state.socket.emit('message', "Hello World");
+      //  }}>
+      //  </Button>
 
-          <Button disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
-          </Button>
-          */
-
-          //{this.state.isRecording && (<Text>Recording...</Text>)}   title={this.state.isRecording === false ? "Stop Recording" : "Record"}
-          // <TouchableOpacity onPress= {this._record.bind(this)}>
-          //   <Image
-          //     style={styles.button}
-          //     source={{
-          //       uri : 'https://imageog.flaticon.com/icons/png/512/60/60811.png?size=1200x630f&pad=10,10,10,10&ext=png&bg=FFFFFFFF'
-          //     }}
-          //   />
-          // </TouchableOpacity>
-
-          // <TouchableOpacity disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
-          // </TouchableOpacity>
-          //
-          // <TouchableOpacity disabled={this.state.inputSound === null} title= "Send Sound" onPress= {()=>this._sendSound(this.state.inputSound)}>
-          // </TouchableOpacity>
-        //</View>
+      //</View>
     );
   }
 }
