@@ -41,10 +41,10 @@ export default class ChatMenu extends React.Component {
     console.log(chatRoom.key);
 
 
-    db.database().ref('users/' + dest).child('chats')
+    await db.database().ref('users/' + dest).child('chats')
       .push(chatRoom.key);
 
-    db.database().ref('users/' + this.state.uid).child('chats')
+    await db.database().ref('users/' + this.state.uid).child('chats')
       .push(chatRoom.key);
 
     return chatRoom;
@@ -59,13 +59,16 @@ export default class ChatMenu extends React.Component {
           users.filter(userId=>userId!=uid).map((userId) => (
             <Button 
               title={userId}
-              onPress={() => {
-                const chatRoom = this.createChat.bind(this)(userId)
+              onPress={async () => {
+                const chatRoom = await this.createChat.bind(this)(userId)
+
+                console.log("navigate", chatRoom);
 
                 this.props.navigation.navigate('Chat', {
                   uid: uid, 
-                  lang: lang, 
                   chatRoom: chatRoom,
+                  newChat: true,
+                  dest: userId,
                 });
               }}
             >

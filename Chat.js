@@ -38,11 +38,14 @@ import db from "./Database.js";
 export default class Chat extends React.Component {
   constructor(props) {
     super(props);
+    console.log('in constructor');
     this.state = {
       uid: this.props.navigation.getParam('uid', "None"),
+      dest: this.props.navigation.getParam('dest', "None"),
       loading: true,
       chat: [],
-      chatRoom: this.props.navigation.getParam('chatRoom', undefined),
+      chatRoom: this.props.navigation.getParam('chatRoom', "None"),
+
       inlang: "en",
       outlang: "es",
       speech: "es-US",
@@ -58,7 +61,7 @@ export default class Chat extends React.Component {
       data: null,
       socket: null,
       messages: [],
-    }
+    };
 
   }
 
@@ -73,6 +76,13 @@ export default class Chat extends React.Component {
     this.state.socket.emit('textMessage', {inlang: this.state.inlang, outlang: this.state.outlang, text: messages[0]});
   }
 
+
+  async pushMessage(message){
+    const messageRef = await this.state.chatRoom.push();
+    console.log("messageRef",messageRef);
+    messageRef.set(message);
+    return messageRef;
+  }
 
   componentDidMount() {
 
@@ -98,6 +108,7 @@ export default class Chat extends React.Component {
 
     this.setState({socket: socket});
 
+
     socket.on('connect', () => {
       if(this.mounted === true){
         this.setState({isConnected: true});
@@ -105,10 +116,29 @@ export default class Chat extends React.Component {
       }
     });
 
-    socket.on('textMessage', (msg) => {
+    socket.on('textMessage', async (response) => {
       if(this.mounted === true){
+
+        var newMessage = Object.assign(response, {
+          from: this.state.uid,
+          date: (new Date()).getTime(),
+          audio: false,
+        });
+
+        console.log("message before push", newMessage);
+        const msg = await this.pushMessage.bind(this)(newMessage);
+        console.log('push Return ', msg);
+
         this.setState(previousState => ({
-          messages: GiftedChat.append(previousState.messages,{_id: previousState.messages.length, text: msg, user: {_id: 2, name: "React", avatar: "https://placeimg.com/140/140/any"}})
+          messages: GiftedChat.append(previousState.messages, {
+            _id: msg.key, 
+            text: msg.inlangContent, 
+            user: {
+              _id: msg.from, 
+              name: "React", 
+              avatar: "https://placeimg.com/140/140/any"
+            }
+          })
         }));
       }
     });
@@ -329,12 +359,6 @@ export default class Chat extends React.Component {
   };
 
 
-  async pushMessage(chatroom, message){
-    const messageRef = chatroom.push();
-    messageRef.set(message);
-    const messageKey = messageRef.key;
-  }
-
   render() {
     const { inlang, outlang, speech } = this.state;
 
@@ -346,7 +370,7 @@ export default class Chat extends React.Component {
         onSend={messages => this.onSend(messages)}
         renderBubble={this.renderBubble}
         user={{
-          _id: 1
+          _id: this.state.uid 
         }}
         renderActions={()=>{
           return(
