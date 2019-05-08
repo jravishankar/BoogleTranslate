@@ -1,13 +1,61 @@
 import React from 'react';
-import { Button, View, Text, Picker, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { 
+  Button, 
+  View, 
+  Text, 
+  Picker, 
+  StyleSheet,
+  TouchableOpacity, 
+  Image,
+  List,
+  ListItem,
+} from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
 const io = require('socket.io-client');
+//const { Duplex } = require('stream');
+//const kSource = Symbol('source');
 
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
 
 //let audioPath = AudioUtils.DocumentDirectoryPath + '/test.aac';
 
 const SocketEndpoint = 'http://140.233.167.236:3000';
+
+//const audioDuplex = new Duplex({
+//  read(size) {
+//    this[kSource].fetchSomeData(size, (data, encoding) => {
+//      this.push(Buffer.from(data, encoding));
+//    });
+//  },
+//  write(chunk, encoding, callback) {
+//    if(Buffer.isBuffer(chunk)){
+//      chunk = chunk.toString();
+//    }
+//    this[kSource].writeSomeData(chunk);
+//    callback();
+//  }
+//});
+
+//class AudioDuplex extends Duplex {
+//  constructor(source, options) {
+//    super(options);
+//    this[kSource] = source;
+//  }
+//
+//  _write(chunk, encoding, callback) {
+//    // The underlying source only deals with strings
+//    if (Buffer.isBuffer(chunk))
+//      chunk = chunk.toString();
+//    this[kSource].writeSomeData(chunk);
+//    callback();
+//  }
+//
+//  _read(size) {
+//    this[kSource].fetchSomeData(size, (data, encoding) => {
+//      this.push(Buffer.from(data, encoding));
+//    });
+//  }
+//}
 
 //console.ignoredYellowBox = ['Remote debugger'];
 import { YellowBox } from 'react-native';
@@ -32,21 +80,46 @@ export default class App extends React.Component {
       translatedSound: null,
       isConnected: false,
       data: null,
+      socket: null,
+      messages: [],
     }
   }
 
-  componentDidMount() {
+  componentWillUnmount(){
+    this.mounted = false;
+  }
 
+  componentDidMount() {
+    this.mounted = true;
     const socket = io(SocketEndpoint, {
       transports: ['websocket'],
     });
+
+    this.setState({socket: socket});
+
     socket.on('connect', () => {
-      this.setState({isConnected: true});
-      console.log('connected');
+      if(this.mounted === true){
+        this.setState({isConnected: true});
+        console.log('connected');
+      }
     });
 
     socket.on('ping', data=>{
-      this.setState({data: data});
+      if(this.mounted === true){
+        this.setState({data: data});
+      }
+    });
+
+    socket.on('message', (msg) => {
+      var updatedMsgs = this.state.messages.slice();
+      console.log(this.state.messages.slice());
+      console.log(updatedMsgs);
+      console.log(msg);
+      updatedMsgs.push(msg);
+      console.log(updatedMsgs);
+      if(this.mounted === true){
+        this.setState({messages: updatedMsgs});
+      }
     });
 
     Permissions.askAsync(Permissions.AUDIO_RECORDING);
@@ -168,6 +241,16 @@ export default class App extends React.Component {
       console.log(body);
       console.log(FileSystem.cacheDirectory);
       console.log(Audio);
+
+      FileSystem.readAsStringAsync(soundFile.uri, {encoding: FileSystem.EncodingTypes.Base64}).then((s) => {
+        this.state.socket.binary(true).emit('voiceMessage', Object.assign(soundFile, {data: s}));
+      });
+
+      //var stream = ss.createStream();
+
+      //ss(this.state.socket).emit('voiceMessage', stream, soundFile);
+      //fs.createReadStream(soundFile.uri).pipe(stream);
+
       //fetch('https://trans-lang.herokuapp.com/api/v2/translate', {
       fetch('http://140.233.167.236:3000/api/v2/translate', {
         method: 'POST',
@@ -186,6 +269,7 @@ export default class App extends React.Component {
     })
     .catch(e=>console.log(e));
   }
+
   async _playSound(sound){
     if(this.state.isPlayingInput){
       this._stopSound(sound);
@@ -230,6 +314,7 @@ export default class App extends React.Component {
   render() {
     const { inlang, outlang, speech } = this.state;
 
+    //console.log(this.state.messages);
     return (
       <View style={styles.container}>
         <View style={styles.inout}>
@@ -309,12 +394,20 @@ export default class App extends React.Component {
           </Text>
         }
 
+        {this.state.messages > 0 &&
+          <Text>{this.state.messages[0]}</Text>
+        }
+
+        {this.state.messages.map((msg)=>(<Text key={msg}>{msg}</Text>))}
+        <Button title="Send" onPress={()=>{
+          this.state.socket.emit('message', "Hello World");
+        }}>
+        </Button>
+
       </View>
 
           /*
           {this.state.isRecording && (<Text>Recording... </Text>)}
-          <Button title={this.state.isRecording ? "Stop Recording" : "Record"} onPress= {this._record.bind(this)}>
-          </Button>
 
           <Button disabled={this.state.inputSound === null} title={this.state.isPlayingInput ? "Stop Playing Input" : "Play Input"} onPress= {() => this._playSound.bind(this)(this.state.inputSound)}>
           </Button>
