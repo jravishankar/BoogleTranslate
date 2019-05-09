@@ -35,6 +35,8 @@ YellowBox.ignoreWarnings([
 
 import db from "./Database.js";
 
+const audioFolder = "voice/";
+
 export default class Chat extends React.Component {
   constructor(props) {
     super(props);
@@ -45,6 +47,7 @@ export default class Chat extends React.Component {
       loading: true,
       chat: [],
       chatRoom: this.props.navigation.getParam('chatRoom', "None"),
+      lang: this.props.navigation.getParam('lang', "en"),
 
       inlang: "en",
       outlang: "es",
@@ -70,9 +73,9 @@ export default class Chat extends React.Component {
   }
 
   onSend(messages = []) {
-    this.setState(previousState => ({
-      messages: GiftedChat.append(previousState.messages, messages)
-    }));
+    //this.setState(previousState => ({
+    //  messages: GiftedChat.append(previousState.messages, messages)
+    //}));
     this.state.socket.emit('textMessage', {inlang: this.state.inlang, outlang: this.state.outlang, text: messages[0]});
   }
 
@@ -82,6 +85,18 @@ export default class Chat extends React.Component {
     console.log("messageRef",messageRef);
     messageRef.set(message);
     return messageRef;
+  }
+
+  giftedMessage(key, message){
+    return {
+      _id: key, 
+      text: lang == message.inlang ? message.inlangContent : message.outlangContent, 
+      user: {
+        _id: message.from, 
+        name: "React", 
+        avatar: "https://placeimg.com/140/140/any"
+      }
+    };
   }
 
   componentDidMount() {
@@ -132,9 +147,9 @@ export default class Chat extends React.Component {
         this.setState(previousState => ({
           messages: GiftedChat.append(previousState.messages, {
             _id: msg.key, 
-            text: msg.inlangContent, 
+            text: newMessage.inlangContent, 
             user: {
-              _id: msg.from, 
+              _id: newMessage.from, 
               name: "React", 
               avatar: "https://placeimg.com/140/140/any"
             }
@@ -144,18 +159,35 @@ export default class Chat extends React.Component {
     });
     
 
-    socket.on('voiceMessage', async (base64Data) => {
-      console.log(base64Data);
+    socket.on('voiceMessage', async (response) => {
 
-      const outputPath = FileSystem.documentDirectory+'translation.mp3';
-      FileSystem.writeAsStringAsync(outputPath, base64Data, {encoding: FileSystem.EncodingTypes.Base64});
-      const translation = new Audio.Sound();
-      console.log(translation)
-      //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
-      await translation.loadAsync({uri: outputPath}, {shouldPlay: true}, true);
+      var newMessage = {
+        from: this.state.uid,
+        date: (new Date()).getTime(),
+        audio: true,
+        inlang: response.inlang,
+        outlang: response.outlang,
+        inlangAudio: response.inlangAudio,
+        outlangAudio: response.outlangAudio,
+      };
+
+      console.log("message before push", newMessage);
+      const msg = await this.pushMessage.bind(this)(newMessage);
+      console.log('push Return ', msg);
+
+      this.setState(previousState => ({
+        messages: GiftedChat.append(previousState.messages, {
+          _id: msg.key, 
+          audio: true,
+          audioData: newMessage.inlangAudio, 
+          user: {
+            _id: newMessage.from, 
+            name: "React", 
+          }
+        })
+      }));
     });
 
-    console.log("mount");
     console.log(this.state.key);
     let chat = db.database().ref('chats/' + this.state.chatRoom.key).on('value', function(snap) {
       console.log(snap);
@@ -235,16 +267,24 @@ export default class Chat extends React.Component {
 
         this.setState({inputSound: info.sound});
 
-        
-        this.setState(previousState => ({
-          messages: GiftedChat.append(previousState.messages, {
-            _id: previousState.messages.length, 
-            audio: true, 
-            user: {
-              _id: 1, 
-            }
-          })
-        }));
+        var filename = info.status.uri.split('/');
+        var directory = filename[filename.length - 2];
+        filename = filename[filename.length - 1];
+
+        const soundUri = FileSystem.cacheDirectory+directory+"/"+filename;
+
+        const newSoundPath = FileSystem.documentDirectory
+          //+audioFolder+
+          //+this.state.chatRoom.key
+          +filename
+        ;
+
+        FileSystem.moveAsync({
+          from: soundUri, 
+          to: newSoundPath
+        })
+        .then(() => this._sendSoundFromFile(newSoundPath))
+        .catch(e=>console.log(e));
 
       })
       .catch(e=>console.log(e));
@@ -256,6 +296,30 @@ export default class Chat extends React.Component {
     });
 
   }
+
+  _sendSoundFromFile(soundUri){
+    var filename = soundUri.split('/');
+    var directory = filename[filename.length - 2];
+    filename = filename[filename.length - 1];
+    const soundFile = {
+      uri: FileSystem.documentDirectory+directory+"/"+filename,
+      name: filename,
+      type: 'audio/wav',
+    };
+
+    FileSystem.readAsStringAsync(soundUri, {
+      encoding: FileSystem.EncodingTypes.Base64
+    }).then((s) => {
+      this.state.socket.binary(true).emit('voiceMessage', 
+        Object.assign(soundFile, {
+          data: s, 
+          inlang: this.state.inlang, 
+          outlang: this.state.outlang
+        })
+      );
+    });
+  }
+
 
   _sendSound(sound){
     sound.getStatusAsync()
@@ -301,6 +365,66 @@ export default class Chat extends React.Component {
     }
   }
 
+  async _playSoundFromBinary(binary){
+
+    console.log('about to play from binary');
+
+    const uri = FileSystem.cacheDirectory+'audio.mp3';
+    FileSystem.writeAsStringAsync(uri, binary, {
+      encoding: FileSystem.EncodingTypes.Base64
+    });
+
+    console.log(uri);
+
+
+    if(this.state.isPlayingInput){
+      this._stopSound(this.state.playingSound);
+      console.log('playing');
+    }
+    else{
+      try{
+        const sound = new Audio.Sound();
+        console.log(sound);
+        await sound.loadAsync({uri: uri}, {shouldPlay: true}, true)
+        .then(this.setState({isPlayingInput: true, playingSound: sound}))
+        .catch(e=>console.log(e));
+      }
+      catch(err){
+        console.log(err)
+      }
+    }
+  }
+
+
+
+  async _playSoundFromFile(soundFile){
+    var filename = soundFile.split('/');
+    var directory = filename[filename.length - 2];
+    filename = filename[filename.length - 1];
+    const soundInfo = {
+      uri: FileSystem.documentDirectory+directory+"/"+filename,
+      name: filename,
+      type: 'audio/wav',
+    };
+
+    if(this.state.isPlayingInput){
+      this._stopSound(this.state.playingSound);
+    }
+    else{
+      try{
+        const sound = new Audio.Sound();
+        console.log("PLAYING FROM FILE", soundFile);
+        await sound.loadAsync({uri: soundInfo.uri}, {shouldPlay: true}, true)
+        .then(this.setState({isPlayingInput: true, playingSound: sound}))
+        .catch(e=>console.log(e));
+      }
+      catch(err){
+        console.log(err)
+      }
+    }
+  }
+
+
   async _stopSound(sound){
       try{
         await sound.stopAsync()
@@ -342,7 +466,8 @@ export default class Chat extends React.Component {
           backgroundColor: "transparent"
         }}
         onPress={() => {
-          this._playSound.bind(this)(this.state.inputSound)
+          this._playSoundFromBinary.bind(this)
+            (props.currentMessage.audioData)
         }}
 
       />
