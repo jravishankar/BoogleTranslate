@@ -12,6 +12,7 @@ export default class ChatMenu extends React.Component {
       chats: [],
       lang: this.props.navigation.getParam('lang', "en"),
       users: [],
+      role: ""
     }
 
   }
@@ -22,58 +23,110 @@ export default class ChatMenu extends React.Component {
       console.log(Object.keys(snap.val()));
       this.setState({users: Object.keys(snap.val())});
     });
-  }
 
-  componentDidMount() {
-    //
-    // db.database().ref('users/' + this.state.uid + "/chats").on('value', (snap) => {
-    //   console.log("listening");
-    //   console.log(snap);
-    //   const chats = snap.child("chats").val()
-    //   this.setState({loading: false, chats: chats});
-    // });
+    db.database().ref('users/' + this.state.uid + '/chats').once('value')
+    .then((snap)=>{
+      console.log(snap.val());
+      console.log(Object.values(snap.val()));
+      this.setState({chats: Object.values(snap.val())});
+    });
 
 
   }
+
   async createChat(dest) {
     let chats = db.database().ref().child('chats');
     let chatRoom = chats.push();
+    console.log("chatroom reted");
     console.log(chatRoom.key);
 
 
     await db.database().ref('users/' + dest).child('chats')
-      .push(chatRoom.key);
+      .push({key: chatRoom.key, role: "out"});
 
     await db.database().ref('users/' + this.state.uid).child('chats')
-      .push(chatRoom.key);
+      .push({key: chatRoom.key, role: "in"});
 
-    return chatRoom;
+    let destLang = "en";
+    db.database().ref('users/' + dest).once('value')
+      .then((snap) => {
+        destLang = snap.child("language").val();
+      })
+      .catch((e) => console.log(e));
+
+    return {chat: chatRoom, destLang: destLang};
+
+  }
+
+  async enterChat(chatKey, chatRole) {
+    const chatRoom = db.database().ref('chats/' + chatKey);
+    let destLang = "";
+    db.database().ref('chats/' + chatKey).once('value')
+    .then((snap)=>{
+      let msg = Object.values(snap.val())[0];
+      if (chatRole === "in") {
+        destLang = msg.outlang;
+      } else {
+        destLang = msg.inlang;
+      }
+    });
+    return {chat: chatRoom, destLang: destLang};
   }
 
 
   render() {
-    const { users, loading, uid } = this.state;
+    const { users, loading, uid, lang, chats, role } = this.state;
     return(
       <View style={styles.view}>
-        {!loading && 
+        {!loading &&
           users.filter(userId=>userId!=uid).map((userId) => (
-            <Button 
+            <Button
               title={userId}
               onPress={async () => {
-                const chatRoom = await this.createChat.bind(this)(userId)
-
+                const retObj = await this.createChat.bind(this)(userId)
+                const chatRoom = retObj.chat;
+                const destLang = retObj.destLang;
                 console.log("navigate", chatRoom);
 
                 this.props.navigation.navigate('Chat', {
-                  uid: uid, 
+                  uid: uid,
                   chatRoom: chatRoom,
                   newChat: true,
                   dest: userId,
+                  lang: lang,
+                  destLang: destLang,
+                  role: "in"
                 });
               }}
             >
             </Button>
           ))
+        }
+
+        {!loading &&
+
+          chats.map(chat => (
+            <Button
+              title={chat.key}
+              onPress={async () => {
+                const retObj = await this.enterChat.bind(this)(chat.key, chat.role)
+                const chatRoom = retObj.chat;
+                const destLang = retObj.destLang;
+                console.log("navigate", chatRoom);
+
+                this.props.navigation.navigate('Chat', {
+                  uid: uid,
+                  chatRoom: chatRoom,
+                  lang: lang,
+                  destLang: destLang,
+                  role: role,
+                  newChat: true,
+                });
+              }}
+            >
+            </Button>
+          ))
+
         }
 
         {loading && <Button loading={true}></Button>}

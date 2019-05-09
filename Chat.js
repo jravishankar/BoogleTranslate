@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  Button, 
-  View, 
-  Text, 
-  Picker, 
+import {
+  Button,
+  View,
+  Text,
+  Picker,
   StyleSheet,
-  TouchableOpacity, 
+  TouchableOpacity,
   Image,
   List,
   ListItem,
@@ -25,7 +25,7 @@ const io = require('socket.io-client');
 
 //let audioPath = AudioUtils.DocumentDirectoryPath + '/test.aac';
 
-const SocketEndpoint = 'http://140.233.167.236:3000';
+const SocketEndpoint = 'http://trans-lang.herokuapp.com';
 
 //console.ignoredYellowBox = ['Remote debugger'];
 import { YellowBox } from 'react-native';
@@ -41,13 +41,11 @@ export default class Chat extends React.Component {
     console.log('in constructor');
     this.state = {
       uid: this.props.navigation.getParam('uid', "None"),
-      dest: this.props.navigation.getParam('dest', "None"),
       loading: true,
       chat: [],
       chatRoom: this.props.navigation.getParam('chatRoom', "None"),
-
-      inlang: "en",
-      outlang: "es",
+      inlang: this.props.navigation.getParam('lang', "en"),
+      outlang: this.props.navigation.getParam('destLang', "en"),
       speech: "es-US",
       isRecording: false,
       isPlayingInput: false,
@@ -64,8 +62,13 @@ export default class Chat extends React.Component {
     };
 
   }
+  componentWillMount() {
 
-  componentWillUnmount(){
+    db.database().ref('chats/' + this.state.chatRoom.key).on('value', function(snap) {
+      this.setState({messages: Object.values(snap.val())});
+    }.bind(this));
+  }
+  componentWillUnmount() {
     this.mounted = false;
   }
 
@@ -131,18 +134,18 @@ export default class Chat extends React.Component {
 
         this.setState(previousState => ({
           messages: GiftedChat.append(previousState.messages, {
-            _id: msg.key, 
-            text: msg.inlangContent, 
+            _id: msg.key,
+            text: msg.inlangContent,
             user: {
-              _id: msg.from, 
-              name: "React", 
+              _id: msg.from,
+              name: "React",
               avatar: "https://placeimg.com/140/140/any"
             }
           })
         }));
       }
     });
-    
+
 
     socket.on('voiceMessage', async (base64Data) => {
       console.log(base64Data);
@@ -157,9 +160,9 @@ export default class Chat extends React.Component {
 
     console.log("mount");
     console.log(this.state.key);
-    let chat = db.database().ref('chats/' + this.state.chatRoom.key).on('value', function(snap) {
-      console.log(snap);
-    });
+
+
+
   }
 
 
@@ -235,13 +238,13 @@ export default class Chat extends React.Component {
 
         this.setState({inputSound: info.sound});
 
-        
+
         this.setState(previousState => ({
           messages: GiftedChat.append(previousState.messages, {
-            _id: previousState.messages.length, 
-            audio: true, 
+            _id: previousState.messages.length,
+            audio: true,
             user: {
-              _id: 1, 
+              _id: 1,
             }
           })
         }));
@@ -324,7 +327,7 @@ export default class Chat extends React.Component {
       });
     }
   };
-   
+
   renderAudio = props => {
     return !props.currentMessage.audio ? (
       <View />
@@ -361,7 +364,7 @@ export default class Chat extends React.Component {
 
   render() {
     const { inlang, outlang, speech } = this.state;
-
+    console.log('messages');
     console.log(this.state.messages);
     return (
 
@@ -370,11 +373,11 @@ export default class Chat extends React.Component {
         onSend={messages => this.onSend(messages)}
         renderBubble={this.renderBubble}
         user={{
-          _id: this.state.uid 
+          _id: this.state.uid
         }}
         renderActions={()=>{
           return(
-            <RecordIcon color="red" recording={this.state.isRecording} 
+            <RecordIcon color="red" recording={this.state.isRecording}
               onPress={this._record.bind(this)}
             />
           );
