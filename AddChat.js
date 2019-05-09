@@ -21,7 +21,9 @@ export default class AddChat extends React.Component {
 
     db.database().ref('users').once('value')
     .then((snap)=>{
-      this.setState({users: Object.entries(snap.val())});
+      if (snap.exists()) {
+        this.setState({users: Object.entries(snap.val())});
+      }
     });
   }
 

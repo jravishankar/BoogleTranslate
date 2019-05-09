@@ -19,7 +19,7 @@ import { FontAwesome } from '@expo/vector-icons';
 const RecordIcon = (props) => {
   const iconName = props.recording ? "microphone-slash" : "microphone";
 
-  return <FontAwesome name={iconName} size={40} color={props.color} onPress={props.onPress}/>;
+  return <FontAwesome name={iconName} size={40} color={props.color} style={props.style} onPress={props.onPress}/>;
 };
 const io = require('socket.io-client');
 //import { AudioRecorder, AudioUtils } from 'react-native-audio';
@@ -131,17 +131,13 @@ export default class Chat extends React.Component {
     Permissions.askAsync(Permissions.AUDIO_RECORDING);
     Audio.setIsEnabledAsync(true);
     Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      allowsRecordingIOS: true,
+      playsInSilentModeIOS: false,
+      allowsRecordingIOS: false,
       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
       shouldDuckAndroid: true,
       interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
       playThroughEarpieceAndroid: false,
-    })
-    // Audio.setAudioModeAsync({
-    //
-    //
-    // });
+    });
 
     this.mounted = true;
     const socket = io(SocketEndpoint, {
@@ -159,7 +155,6 @@ export default class Chat extends React.Component {
 
     socket.on('textMessage', async (response) => {
       if(this.mounted === true){
-
         var newMessage = Object.assign(response, {
           from: this.state.uid,
           fromName: this.state.name,
@@ -195,6 +190,14 @@ export default class Chat extends React.Component {
 
   async _record(){
     if(!this.state.isRecording){
+      Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: true,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+        shouldDuckAndroid: true,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        playThroughEarpieceAndroid: false,
+      })
       const recording = this.state.recording;
       try {
         await recording.prepareToRecordAsync({
@@ -251,6 +254,14 @@ export default class Chat extends React.Component {
     const recording = this.state.recording;
     recording.stopAndUnloadAsync()
     .then(()=>{
+      Audio.setAudioModeAsync({
+        playsInSilentModeIOS: false,
+        allowsRecordingIOS: false,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+        shouldDuckAndroid: true,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        playThroughEarpieceAndroid: false,
+      })
       recording.createNewLoadedSoundAsync()
       .then(async (info) => {
         info.sound.setStatusAsync({volume:1.0})
@@ -484,7 +495,7 @@ export default class Chat extends React.Component {
         }}
         renderActions={()=>{
           return(
-            <RecordIcon color="red" recording={this.state.isRecording}
+            <RecordIcon color="red" style={{left: 10}} recording={this.state.isRecording}
               onPress={this._record.bind(this)}
             />
           );

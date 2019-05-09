@@ -21,9 +21,11 @@ export default class ChatMenu extends React.Component {
 
   componentWillMount(){
 
-    db.database().ref('users/' + this.state.uid + '/chats').on('value', (snap)=>{
-      this.setState({chats: Object.values(snap.val())});
-    });
+      db.database().ref('users/' + this.state.uid + '/chats').on('value', (snap)=>{
+        if (snap.exists()) {
+          this.setState({chats: Object.values(snap.val())});
+        }
+      });
 
   };
 
