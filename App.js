@@ -15,6 +15,7 @@ import SelectLang from './SelectLang.js';
 import ChatMenu from './ChatMenu.js';
 import NewChat from './NewChat.js';
 import Chat from './Chat.js';
+import AddChat from './AddChat.js';
 import {YellowBox } from "react-native";
 
 YellowBox.ignoreWarnings([
@@ -56,6 +57,10 @@ const navigator = createStackNavigator({
   Chat: { screen: Chat,
              navigationOptions:  {
                title: 'Chat',
+            }},
+  AddChat: { screen: AddChat,
+             navigationOptions:  {
+               title: 'Create New Chat',
             }},
 
  }, {initialRouteName: 'Loading'}

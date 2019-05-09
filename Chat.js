@@ -9,6 +9,7 @@ import {
   Image,
   List,
   ListItem,
+  KeyboardAvoidingView
 } from 'react-native';
 import { FileSystem, Permissions, Audio } from 'expo';
 import { GiftedChat, Bubble } from 'react-native-gifted-chat';
@@ -27,18 +28,20 @@ const io = require('socket.io-client');
 
 const SocketEndpoint = 'http://trans-lang.herokuapp.com';
 
-//console.ignoredYellowBox = ['Remote debugger'];
-import { YellowBox } from 'react-native';
-YellowBox.ignoreWarnings([
-    'Unrecognized WebSocket connection option(s) `agent`, `perMessageDeflate`, `pfx`, `key`, `passphrase`, `cert`, `ca`, `ciphers`, `rejectUnauthorized`. Did you mean to put these under `headers`?'
-]);
+console.disableYellowBox = true;
+// console.ignoredYellowBox = ['Remote debugger'];
+// import { YellowBox } from 'react-native';
+// YellowBox.ignoreWarnings([
+//     'Unrecognized WebSocket connection option(s) `agent`, `perMessageDeflate`, `pfx`, `key`, `passphrase`, `cert`, `ca`, `ciphers`, `rejectUnauthorized`. Did you mean to put these under `headers`?'
+// ]);
 
 import db from "./Database.js";
+
+const audioFolder = "voice/";
 
 export default class Chat extends React.Component {
   constructor(props) {
     super(props);
-    console.log('in constructor');
     this.state = {
       uid: this.props.navigation.getParam('uid', "None"),
       loading: true,
@@ -59,32 +62,68 @@ export default class Chat extends React.Component {
       data: null,
       socket: null,
       messages: [],
+      newChat: this.props.navigation.getParam('newChat', false),
+      name: this.props.navigation.getParam('name', "None"),
+      photoURL: this.props.navigation.getParam('photoURL', "None"),
     };
+
+    this.giftedMessage = this.giftedMessage.bind(this);
 
   }
   componentWillMount() {
 
     db.database().ref('chats/' + this.state.chatRoom.key).on('value', function(snap) {
-      this.setState({messages: Object.values(snap.val())});
+      if(snap.exists()) {
+        this.setState({messages: GiftedChat.append([], Object.values(snap.val()).map(this.giftedMessage))});
+      }
     }.bind(this));
   }
+
   componentWillUnmount() {
     this.mounted = false;
   }
 
   onSend(messages = []) {
-    this.setState(previousState => ({
-      messages: GiftedChat.append(previousState.messages, messages)
-    }));
     this.state.socket.emit('textMessage', {inlang: this.state.inlang, outlang: this.state.outlang, text: messages[0]});
   }
 
 
   async pushMessage(message){
-    const messageRef = await this.state.chatRoom.push();
-    console.log("messageRef",messageRef);
-    messageRef.set(message);
-    return messageRef;
+    console.log(message);
+    console.log(this.state.chatRoom);
+
+      const messageRef = await this.state.chatRoom.push().catch(e=>console.log(e));
+      messageRef.set(message);
+      console.log(messageRef);
+      return messageRef;
+
+
+  }
+
+  giftedMessage(message){
+    if(message.audio === true){
+      return {
+        _id: message.date,
+        audio: true,
+        audioData: this.state.inlang == message.inlang ? message.inlangAudio : message.outlangAudio,
+        user: {
+          _id: message.from,
+          avatar: message.fromPhotoURL,
+          name: message.fromName
+        }
+      };
+    }
+    else{
+      return {
+        _id: message.date,
+        text: this.state.inlang == message.inlang ? message.inlangContent : message.outlangContent,
+        user: {
+          _id: message.from,
+          avatar: message.fromPhotoURL,
+          name: message.fromName
+        }
+      };
+    }
   }
 
   componentDidMount() {
@@ -115,7 +154,6 @@ export default class Chat extends React.Component {
     socket.on('connect', () => {
       if(this.mounted === true){
         this.setState({isConnected: true});
-        console.log('connected');
       }
     });
 
@@ -124,54 +162,41 @@ export default class Chat extends React.Component {
 
         var newMessage = Object.assign(response, {
           from: this.state.uid,
+          fromName: this.state.name,
+          fromPhotoURL: this.state.photoURL,
           date: (new Date()).getTime(),
           audio: false,
         });
 
-        console.log("message before push", newMessage);
         const msg = await this.pushMessage.bind(this)(newMessage);
-        console.log('push Return ', msg);
 
-        this.setState(previousState => ({
-          messages: GiftedChat.append(previousState.messages, {
-            _id: msg.key,
-            text: msg.inlangContent,
-            user: {
-              _id: msg.from,
-              name: "React",
-              avatar: "https://placeimg.com/140/140/any"
-            }
-          })
-        }));
       }
     });
 
 
-    socket.on('voiceMessage', async (base64Data) => {
-      console.log(base64Data);
+    socket.on('voiceMessage', async (response) => {
 
-      const outputPath = FileSystem.documentDirectory+'translation.mp3';
-      FileSystem.writeAsStringAsync(outputPath, base64Data, {encoding: FileSystem.EncodingTypes.Base64});
-      const translation = new Audio.Sound();
-      console.log(translation)
-      //await translation.loadAsync({uri: 'https://trans-lang.herokuapp.com/output.mp3'}, {shouldPlay: true}, true);
-      await translation.loadAsync({uri: outputPath}, {shouldPlay: true}, true);
+      var newMessage = {
+        from: this.state.uid,
+        fromName: this.state.name,
+        fromPhotoURL: this.state.photoURL,
+        date: (new Date()).getTime(),
+        audio: true,
+        inlang: response.inlang,
+        outlang: response.outlang,
+        inlangAudio: response.inlangAudio,
+        outlangAudio: response.outlangAudio,
+      };
+
+      const msg = await this.pushMessage.bind(this)(newMessage);
     });
 
-    console.log("mount");
-    console.log(this.state.key);
-
-
-
   }
-
 
   async _record(){
     if(!this.state.isRecording){
       const recording = this.state.recording;
-      console.log(recording);
       try {
-        console.log("about to prepare recording");
         await recording.prepareToRecordAsync({
           android: {
             extension: '.wav',
@@ -191,20 +216,18 @@ export default class Chat extends React.Component {
             linearPCMIsBigEndian: false,
             linearPCMIsFloat: false,
           },
-        }).catch((err) => {console.log(err)});
+        }).catch((err) => {throw new Error (err)});
         await recording.setOnRecordingStatusUpdate((s)=>console.log(s));
-        console.log(recording);
         await recording.startAsync()
           .then(()=>{
             this.setState({isRecording: true});
-            console.log("recording");
           })
           .catch(error=>{
-            console.log(error)
+            throw new Error (error);
             this._cancelRecording.bind(this);
           });
       } catch  (error) {
-          console.log(error);
+          throw new Error (error);
       }
     }
     else{
@@ -228,29 +251,34 @@ export default class Chat extends React.Component {
     const recording = this.state.recording;
     recording.stopAndUnloadAsync()
     .then(()=>{
-      console.log(recording.getURI());
       recording.createNewLoadedSoundAsync()
       .then(async (info) => {
         info.sound.setStatusAsync({volume:1.0})
-        console.log(info.sound);
-        console.log("Sound Status", info.status);
         info.sound.setOnPlaybackStatusUpdate(this._onPlaybackStatusUpdate);
 
         this.setState({inputSound: info.sound});
 
+        var filename = info.status.uri.split('/');
+        var directory = filename[filename.length - 2];
+        filename = filename[filename.length - 1];
 
-        this.setState(previousState => ({
-          messages: GiftedChat.append(previousState.messages, {
-            _id: previousState.messages.length,
-            audio: true,
-            user: {
-              _id: 1,
-            }
-          })
-        }));
+        const soundUri = FileSystem.cacheDirectory+directory+"/"+filename;
+
+        const newSoundPath = FileSystem.documentDirectory
+          //+audioFolder+
+          //+this.state.chatRoom.key
+          +filename
+        ;
+
+        FileSystem.moveAsync({
+          from: soundUri,
+          to: newSoundPath
+        })
+        .then(() => this._sendSoundFromFile(newSoundPath))
+        .catch(e=>throw new Error (e));
 
       })
-      .catch(e=>console.log(e));
+      .catch(e=>throw new Error (e));
 
       this.setState({
         isRecording: false,
@@ -259,6 +287,30 @@ export default class Chat extends React.Component {
     });
 
   }
+
+  _sendSoundFromFile(soundUri){
+    var filename = soundUri.split('/');
+    var directory = filename[filename.length - 2];
+    filename = filename[filename.length - 1];
+    const soundFile = {
+      uri: FileSystem.documentDirectory+directory+"/"+filename,
+      name: filename,
+      type: 'audio/wav',
+    };
+
+    FileSystem.readAsStringAsync(soundUri, {
+      encoding: FileSystem.EncodingTypes.Base64
+    }).then((s) => {
+      this.state.socket.binary(true).emit('voiceMessage',
+        Object.assign(soundFile, {
+          data: s,
+          inlang: this.state.inlang,
+          outlang: this.state.outlang
+        })
+      );
+    });
+  }
+
 
   _sendSound(sound){
     sound.getStatusAsync()
@@ -277,15 +329,12 @@ export default class Chat extends React.Component {
       body.append('outlang', this.state.outlang);
       body.append('speechInput', soundFile);
 
-      console.log(body);
-      console.log(FileSystem.cacheDirectory);
-
       FileSystem.readAsStringAsync(soundFile.uri, {encoding: FileSystem.EncodingTypes.Base64}).then((s) => {
         this.state.socket.binary(true).emit('voiceMessage', Object.assign(soundFile, {data: s, inlang: this.state.inlang, outlang: this.state.outlang}));
       });
 
     })
-    .catch(e=>console.log(e));
+    .catch(e=>throw new Error (e));
   }
 
   async _playSound(sound){
@@ -296,22 +345,77 @@ export default class Chat extends React.Component {
       try{
         await sound.playAsync()
         .then(this.setState({isPlayingInput: true}))
-        .catch(e=>console.log(e));
+        .catch(e=>throw new Error (e));
       }
       catch(err){
-        console.log(err)
+        throw new Error (err)
       }
     }
   }
+
+  async _playSoundFromBinary(binary){
+
+
+    const uri = FileSystem.cacheDirectory+'audio.mp3';
+    FileSystem.writeAsStringAsync(uri, binary, {
+      encoding: FileSystem.EncodingTypes.Base64
+    });
+
+
+
+    if(this.state.isPlayingInput){
+      this._stopSound(this.state.playingSound);
+    }
+    else{
+      try{
+        const sound = new Audio.Sound();
+        await sound.loadAsync({uri: uri}, {shouldPlay: true}, true)
+        .then(this.setState({isPlayingInput: true, playingSound: sound}))
+        .catch(e=>throw new Error (e));
+      }
+      catch(err){
+        throw new Error (err)
+      }
+    }
+  }
+
+
+
+  async _playSoundFromFile(soundFile){
+    var filename = soundFile.split('/');
+    var directory = filename[filename.length - 2];
+    filename = filename[filename.length - 1];
+    const soundInfo = {
+      uri: FileSystem.documentDirectory+directory+"/"+filename,
+      name: filename,
+      type: 'audio/wav',
+    };
+
+    if(this.state.isPlayingInput){
+      this._stopSound(this.state.playingSound);
+    }
+    else{
+      try{
+        const sound = new Audio.Sound();
+        await sound.loadAsync({uri: soundInfo.uri}, {shouldPlay: true}, true)
+        .then(this.setState({isPlayingInput: true, playingSound: sound}))
+        .catch(e=>throw new Error (e));
+      }
+      catch(err){
+        throw new Error (err)
+      }
+    }
+  }
+
 
   async _stopSound(sound){
       try{
         await sound.stopAsync()
         .then(this.setState({isPlayingInput: false}))
-        .catch(e=>console.log(e));
+        .catch(e=>throw new Error (e));
       }
       catch(err){
-        console.log(err)
+        throw new Error (err)
       }
   }
 
@@ -337,17 +441,20 @@ export default class Chat extends React.Component {
         size={35}
         color={this.state.playAudio ? "red" : "blue"}
         style={{
-          left: 90,
+          top: 35,
+          left: 20,
           position: "relative",
           shadowColor: "#000",
+          width: 50,
+          height: 50,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.5,
           backgroundColor: "transparent"
         }}
         onPress={() => {
-          this._playSound.bind(this)(this.state.inputSound)
+          this._playSoundFromBinary.bind(this)
+            (props.currentMessage.audioData)
         }}
-
       />
     );
   };
@@ -364,11 +471,11 @@ export default class Chat extends React.Component {
 
   render() {
     const { inlang, outlang, speech } = this.state;
-    console.log('messages');
-    console.log(this.state.messages);
     return (
 
+      <KeyboardAvoidingView style={{flex: 1}}>
       <GiftedChat
+        inverted={false}
         messages={this.state.messages}
         onSend={messages => this.onSend(messages)}
         renderBubble={this.renderBubble}
@@ -383,6 +490,7 @@ export default class Chat extends React.Component {
           );
         }}
       />
+      </KeyboardAvoidingView>
     );
   }
 }
@@ -403,13 +511,11 @@ const styles = StyleSheet.create({
     fontSize: 26,
     textAlign: 'center',
     marginTop: 35,
-    //fontFamily: 'Times New Roman',
   },
   output: {
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 26,
-    //fontFamily: 'Times New Roman',
   },
 
   inout: {

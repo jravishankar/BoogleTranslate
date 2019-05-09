@@ -3,16 +3,14 @@ import db from "./Database.js";
 import { View, Text, Picker, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import {Button} from 'react-native-elements';
 
-export default class ChatMenu extends React.Component {
+export default class AddChat extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       uid: this.props.navigation.getParam('uid', "None"),
       loading: false,
-      chats: [],
       lang: this.props.navigation.getParam('lang', "en"),
       users: [],
-      role: "",
       name: this.props.navigation.getParam('name', "None"),
       photoURL: this.props.navigation.getParam('photoURL', "None"),
     }
@@ -21,67 +19,74 @@ export default class ChatMenu extends React.Component {
 
   componentWillMount(){
 
-    db.database().ref('users/' + this.state.uid + '/chats').on('value', (snap)=>{
-      this.setState({chats: Object.values(snap.val())});
-    });
-
-  };
-
-  async enterChat(chatKey, chatRole) {
-    const chatRoom = db.database().ref('chats/' + chatKey);
-    let destLang = "";
-    await db.database().ref('chats/' + chatKey).once('value')
+    db.database().ref('users').once('value')
     .then((snap)=>{
-      let msg = Object.values(snap.val())[0];
-      if (chatRole === "in") {
-        destLang = msg.outlang;
-      } else {
-        destLang = msg.inlang;
-      }
+      this.setState({users: Object.entries(snap.val())});
     });
+  }
+
+  async createChat(dest) {
+    let chats = db.database().ref().child('chats');
+    let chatRoom = chats.push();
+    let destLang = "en";
+    let destName = "";
+    let destPhoto = "";
+
+    await db.database().ref('users/' + dest).once('value')
+      .then((snap) => {
+        destLang = snap.child("language").val();
+        destName = snap.child("name").val()
+      })
+      .catch((e) => throw new Error (e));
+
+
+    await db.database().ref('users/' + dest).child('chats')
+      .push({key: chatRoom.key, role: "out", partner: this.state.name, partnerPhoto: this.state.photoURL });
+
+    await db.database().ref('users/' + this.state.uid).child('chats')
+      .push({key: chatRoom.key, role: "in", partner: destName, partnerPhoto: destPhoto});
+
+
+    console.log(chatRoom);
     return {chat: chatRoom, destLang: destLang};
+
   }
 
 
-  render() {
-    const { users, loading, uid, lang, chats, role, name, photoURL } = this.state;
 
+  render() {
+    const { users, loading, uid, lang, chats, role, name, photoURL} = this.state;
     return(
       <View style={styles.view}>
-        {!loading && <Button
-                      onPress={() => this.props.navigation.navigate('AddChat', {uid: uid, lang: lang, name: name, photoURL: photoURL})}
-                      title= "New Chat"
-                      >
-                      </Button>}
 
         {!loading &&
-
-          chats.map(chat => (
+          users.filter(user=>user[0]!=uid).map((user) => (
             <Button
-              key={chat.key}
-              title={chat.partner}
+              key={user[0]}
+              title={user[1]["name"]}
               onPress={async () => {
-                const retObj = await this.enterChat.bind(this)(chat.key, chat.role)
+                const retObj = await this.createChat.bind(this)(user[0])
                 const chatRoom = retObj.chat;
                 const destLang = retObj.destLang;
+                const destName = retObj.destName;
 
-                console.log("navigate to Chat");
                 this.props.navigation.navigate('Chat', {
                   uid: uid,
                   chatRoom: chatRoom,
+                  newChat: true,
+                  dest: user[0],
                   lang: lang,
                   destLang: destLang,
-                  role: role,
-                  newChat: true,
-                  photoURL: photoURL,
-                  name: name
+                  role: "in",
+                  name: name,
+                  photoURL: photoURL
                 });
               }}
             >
             </Button>
           ))
-
         }
+
         {loading && <Button loading={true}></Button>}
       </View>
     )
